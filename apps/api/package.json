@@ -1,0 +1,29 @@
+{
+  "name": "@preParena/api",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "dev": "wrangler dev src/index.ts",
+    "deploy": "wrangler deploy src/index.ts",
+    "cf-typegen": "wrangler types",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate:local": "wrangler d1 migrations apply preParena-db --local",
+    "db:migrate:remote": "wrangler d1 migrations apply preParena-db --remote",
+    "seed:generate": "tsx src/scripts/runSeed.ts",
+    "seed:local": "npm run seed:generate && wrangler d1 execute preParena-db --local --file=seed.sql",
+    "seed:remote": "npm run seed:generate && wrangler d1 execute preParena-db --remote --file=seed.sql"
+  },
+  "dependencies": {
+    "hono": "^4.7.11",
+    "jose": "^6.2.3"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20250620.0",
+    "@types/node": "^26.0.1",
+    "drizzle-kit": "^0.31.1",
+    "drizzle-orm": "^0.44.1",
+    "tsx": "^4.22.4",
+    "typescript": "^5.8.3",
+    "wrangler": "^4.20.0"
+  }
+}

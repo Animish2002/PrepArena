@@ -1,0 +1,47 @@
+name = "preparena-api"
+main = "src/index.ts"
+compatibility_date = "2025-01-01"
+compatibility_flags = ["nodejs_compat"]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "preParena-db"
+database_id = "90b18472-18ea-4d6b-becd-7a70e837e20f"
+migrations_dir = "drizzle"
+
+[[kv_namespaces]]
+binding = "KV"
+id = "dd6f22111ddf40bbb7e6e5bf870396e3"
+
+[[r2_buckets]]
+binding = "R2"
+bucket_name = "preparena-storage"
+
+# ── Durable Objects ───────────────────────────────────────────────────────────
+[durable_objects]
+bindings = [
+  { name = "USER_FEED",   class_name = "UserFeed" },
+  { name = "BATTLE_ROOM", class_name = "BattleRoom" },
+]
+
+[[migrations]]
+tag = "v1"
+new_classes = ["UserFeed", "BattleRoom"]
+
+# ── Public vars (non-secret) ──────────────────────────────────────────────────
+[vars]
+FRONTEND_URL        = "http://localhost:5173"
+GOOGLE_REDIRECT_URI = "http://localhost:8787/auth/google/callback"
+WORKER_URL          = "http://localhost:8787"
+
+# ── Secrets — set via CLI, never commit real values ───────────────────────────
+# wrangler secret put JWT_SECRET
+# wrangler secret put GOOGLE_CLIENT_ID
+# wrangler secret put GOOGLE_CLIENT_SECRET
+# wrangler secret put INTERNAL_SECRET
+#
+# For local dev create a .dev.vars file (gitignored) with:
+#   JWT_SECRET=...
+#   GOOGLE_CLIENT_ID=...
+#   GOOGLE_CLIENT_SECRET=...
+#   INTERNAL_SECRET=...
