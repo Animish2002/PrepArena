@@ -65,8 +65,8 @@ function StreakCalendar({ activeDates }: { activeDates: string[] }) {
             active
               ? 'bg-emerald-500'
               : isToday
-                ? 'dark:bg-white/15 bg-black/15 ring-2 ring-(--color-accent)/60'
-                : 'dark:bg-white/8 bg-black/8',
+                ? 'bg-(--color-cell-today) ring-2 ring-(--color-accent)/70'
+                : 'bg-(--color-cell-empty)',
           ].join(' ')}
         />
       ))}
@@ -248,7 +248,7 @@ export default function DashboardPage() {
                         {t.solved}/{t.total}
                       </span>
                     </div>
-                    <div className="h-1.5 rounded-full bg-(--color-bg)">
+                    <div className="h-1.5 rounded-full bg-(--color-border)">
                       <div
                         className="h-full rounded-full bg-(--color-accent) transition-all duration-700"
                         style={{ width: `${pct}%` }}

@@ -61,7 +61,7 @@ export default function TopicSidebar({ selectedTopic, onSelectTopic }: TopicSide
                   {solved}/{total}
                 </span>
               </div>
-              <div className="h-1 rounded-full bg-(--color-border)">
+              <div className="h-1 rounded-full bg-(--color-cell-empty)">
                 <div
                   className={`h-full rounded-full transition-all duration-500 ${
                     isActive ? 'bg-(--color-accent)' : 'bg-emerald-500'

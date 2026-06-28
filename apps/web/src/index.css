@@ -9,28 +9,33 @@
   font-display: swap;
 }
 
+/* ── Design tokens ──────────────────────────────────────────────────────────── */
 :root {
-  --color-bg: #ffffff;
-  --color-surface: #f9fafb;
-  --color-border: #e5e7eb;
-  --color-text-primary: #111827;
-  --color-text-secondary: #6b7280;
-  --color-accent: #6366f1;
+  --color-bg:             #f4f4f5;
+  --color-surface:        #ffffff;
+  --color-border:         #e4e4e7;
+  --color-text-primary:   #18181b;
+  --color-text-secondary: #71717a;
+  --color-accent:         #6366f1;
+  --color-cell-empty:     #e4e4e7;
+  --color-cell-today:     #d4d4d8;
 }
 
 .dark {
-  --color-bg: #0f0f0f;
-  --color-surface: #1a1a1a;
-  --color-border: #2a2a2a;
-  --color-text-primary: #f9fafb;
-  --color-text-secondary: #9ca3af;
-  --color-accent: #818cf8;
+  --color-bg:             #09090b;
+  --color-surface:        #18181b;
+  --color-border:         #27272a;
+  --color-text-primary:   #fafafa;
+  --color-text-secondary: #a1a1aa;
+  --color-accent:         #818cf8;
+  --color-cell-empty:     #27272a;
+  --color-cell-today:     #3f3f46;
 }
 
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
+
+
+html {
+  scroll-behavior: smooth;
 }
 
 body {
@@ -39,4 +44,22 @@ body {
   font-family: 'Geist', system-ui, -apple-system, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+/* ── Scrollbar ──────────────────────────────────────────────────────────────── */
+::-webkit-scrollbar            { width: 5px; height: 5px; }
+::-webkit-scrollbar-track      { background: transparent; }
+::-webkit-scrollbar-thumb      { background: var(--color-border); border-radius: 99px; }
+::-webkit-scrollbar-thumb:hover { background: var(--color-text-secondary); }
+
+/* ── Selection ──────────────────────────────────────────────────────────────── */
+::selection {
+  background-color: color-mix(in oklch, var(--color-accent) 25%, transparent);
+}
+
+/* ── Input / select base ────────────────────────────────────────────────────── */
+input, select, textarea {
+  background-color: var(--color-bg);
+  color: var(--color-text-primary);
+  border-color: var(--color-border);
 }
