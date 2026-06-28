@@ -1,27 +1,24 @@
 import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useAuthStore } from '../store/authStore'
 
 export default function AuthCallback() {
   const navigate = useNavigate()
+  const { fetchMe } = useAuthStore()
 
   useEffect(() => {
-    const fullUrl = window.location.href
     const params = new URLSearchParams(window.location.search)
     const token = params.get('token')
 
-    console.log('[AuthCallback] full URL:', fullUrl)
-    console.log('[AuthCallback] token present:', !!token)
-    console.log('[AuthCallback] token length:', token?.length ?? 0)
-
     if (token) {
       localStorage.setItem('preParena_token', token)
-      console.log('[AuthCallback] token saved to localStorage')
+      // fetchMe now runs with the token already in localStorage
+      fetchMe().finally(() => navigate('/dashboard', { replace: true }))
     } else {
-      console.warn('[AuthCallback] NO token in URL — check API redirect')
+      console.warn('[AuthCallback] no token in URL')
+      navigate('/login', { replace: true })
     }
-
-    navigate('/dashboard', { replace: true })
-  }, [navigate])
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-(--color-bg)">
