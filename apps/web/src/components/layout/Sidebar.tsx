@@ -55,29 +55,35 @@ function Avatar({ user, size }: { user: User | null; size: number }) {
   )
 }
 
-function NavContent({ collapsed, onLinkClick }: { collapsed: boolean; onLinkClick: () => void }) {
+function NavContent({
+  collapsed,
+  onToggleCollapse,
+  onLinkClick,
+}: {
+  collapsed: boolean
+  onToggleCollapse?: () => void
+  onLinkClick: () => void
+}) {
   const { user, logout } = useAuthStore()
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
-      {/* Logo */}
-      <div
-        className={`flex items-center h-14 px-3 border-b border-(--color-border) shrink-0 ${
-          collapsed ? 'justify-center' : 'gap-2'
-        }`}
-      >
-        {collapsed ? (
-          <img
-            src="/assets/PrepArena_favicon.png"
-            alt="PrepArena"
-            className="w-7 h-7 object-contain rounded-lg"
-          />
-        ) : (
-          <img
-            src="/assets/PrepArena_Logo.png"
-            alt="PrepArena"
-            className="h-7 w-auto object-contain"
-          />
+      {/* Logo + collapse toggle (desktop only) */}
+      <div className="flex items-center h-14 px-3 border-b border-(--color-border) shrink-0 gap-2">
+        <img src="/assets/PrepArena_favicon.png" alt="PrepArena" className="w-7 h-7 object-contain shrink-0" />
+        {!collapsed && (
+          <span className="flex-1 text-sm font-bold tracking-tight text-(--color-text-primary) truncate">
+            Prep<span className="text-(--color-accent)">Arena</span>
+          </span>
+        )}
+        {onToggleCollapse && (
+          <button
+            onClick={onToggleCollapse}
+            aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            className={`shrink-0 p-1 rounded-md text-(--color-text-secondary) hover:bg-(--color-bg) hover:text-(--color-text-primary) transition-colors ${collapsed ? 'mx-auto' : ''}`}
+          >
+            {collapsed ? <IconChevronRight size={14} /> : <IconChevronLeft size={14} />}
+          </button>
         )}
       </div>
 
@@ -149,22 +155,13 @@ export default function Sidebar({ collapsed, onToggleCollapse, mobileOpen, onMob
       {/* ── Desktop sidebar ─────────────────────────────────────────────────── */}
       <aside
         className={[
-          'hidden lg:flex flex-col shrink-0 relative',
+          'hidden lg:flex flex-col shrink-0',
           'bg-(--color-surface) border-r border-(--color-border)',
           'transition-all duration-300 overflow-hidden',
-          collapsed ? 'w-16' : 'w-60',
+          collapsed ? 'w-16' : 'w-56',
         ].join(' ')}
       >
-        <NavContent collapsed={collapsed} onLinkClick={() => {}} />
-
-        {/* Collapse toggle */}
-        <button
-          onClick={onToggleCollapse}
-          aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-          className="absolute top-4 -right-3 z-10 w-6 h-6 rounded-full bg-(--color-surface) border border-(--color-border) flex items-center justify-center text-(--color-text-secondary) hover:text-(--color-text-primary) transition-colors shadow-sm"
-        >
-          {collapsed ? <IconChevronRight size={12} /> : <IconChevronLeft size={12} />}
-        </button>
+        <NavContent collapsed={collapsed} onToggleCollapse={onToggleCollapse} onLinkClick={() => {}} />
       </aside>
 
       {/* ── Mobile backdrop ──────────────────────────────────────────────────── */}

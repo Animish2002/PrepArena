@@ -19,11 +19,12 @@ export default function LoginPage() {
       <div className="w-full max-w-sm">
         <div className="bg-(--color-surface) border border-(--color-border) rounded-2xl p-8 shadow-2xl">
           <div className="flex flex-col items-center gap-4 mb-8">
-            <img
-              src="/assets/PrepArena_Logo.png"
-              alt="PrepArena"
-              className="h-14 w-auto object-contain"
-            />
+            <div className="flex items-center gap-2.5">
+              <img src="/assets/PrepArena_favicon.png" alt="" className="w-9 h-9 object-contain" />
+              <span className="text-2xl font-bold tracking-tight text-(--color-text-primary)">
+                Prep<span className="text-(--color-accent)">Arena</span>
+              </span>
+            </div>
             <p className="text-sm text-(--color-text-secondary)">
               Track your DSA journey with friends
             </p>

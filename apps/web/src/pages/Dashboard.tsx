@@ -65,8 +65,8 @@ function StreakCalendar({ activeDates }: { activeDates: string[] }) {
             active
               ? 'bg-emerald-500'
               : isToday
-                ? 'bg-(--color-border) ring-2 ring-(--color-accent) ring-opacity-50'
-                : 'bg-(--color-border) opacity-40',
+                ? 'dark:bg-white/15 bg-black/15 ring-2 ring-(--color-accent)/60'
+                : 'dark:bg-white/8 bg-black/8',
           ].join(' ')}
         />
       ))}
