@@ -4,7 +4,11 @@ import { jwtVerify } from 'jose'
 import type { AppEnv } from '../types/env'
 
 export const authMiddleware: MiddlewareHandler<AppEnv> = async (c, next) => {
-  const token = getCookie(c, 'preParena_session')
+  // Accept Bearer token from Authorization header OR legacy cookie
+  const authHeader = c.req.header('Authorization')
+  const bearerToken = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null
+  const cookieToken = getCookie(c, 'preParena_session')
+  const token = bearerToken ?? cookieToken
 
   if (!token) {
     return c.json({ error: 'Unauthorized' }, 401)

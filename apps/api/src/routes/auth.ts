@@ -171,11 +171,11 @@ auth.get('/google/callback', async (c) => {
     })
   }
 
-  // ── Issue session cookie ────────────────────────────────────────────────
+  // ── Issue token — pass in URL so cross-domain cookies are not needed ───
   const token = await signJwt(c.env.JWT_SECRET, { sub: userId, email: googleUser.email, username })
-  setSessionCookie(c, token)
+  setSessionCookie(c, token) // keep cookie as fallback for same-domain setups
 
-  return c.redirect(`${c.env.FRONTEND_URL}/dashboard`)
+  return c.redirect(`${c.env.FRONTEND_URL}/auth/callback?token=${token}`)
 })
 
 // ─── GET /auth/me ─────────────────────────────────────────────────────────────

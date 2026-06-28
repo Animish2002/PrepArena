@@ -32,6 +32,7 @@ export const useAuthStore = create<AuthState>((set) => ({
     } catch {
       // Clear local state even if the request fails
     }
+    localStorage.removeItem('preParena_token')
     set({ user: null, isAuthenticated: false })
     window.location.href = '/login'
   },

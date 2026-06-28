@@ -13,6 +13,7 @@ import RevisionsPage from './pages/Revisions'
 import ProfilePage from './pages/Profile'
 import GroupsPage from './pages/Groups'
 import JoinPage from './pages/Join'
+import AuthCallback from './pages/AuthCallback'
 import { useAuthStore } from './store/authStore'
 
 // After auth completes, check if the user was trying to accept a friend invite
@@ -40,6 +41,7 @@ export default function App() {
         <PendingJoinRedirect />
         <Routes>
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/auth/callback" element={<AuthCallback />} />
           <Route path="/join/:token" element={<JoinPage />} />
 
           {/* All authenticated pages share the AppLayout shell */}
