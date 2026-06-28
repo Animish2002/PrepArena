@@ -15,6 +15,8 @@ import api from '../../lib/api'
 interface ProblemDrawerProps {
   problem: Problem | null
   onClose: () => void
+  revisionId?: string
+  onRevisionComplete?: (revisionId: string) => void
 }
 
 type Phase = 'idle' | 'timing' | 'confidence' | 'success'
@@ -32,7 +34,12 @@ const DIFF_BADGE: Record<string, string> = {
   hard: 'bg-red-500/15 text-red-500',
 }
 
-export default function ProblemDrawer({ problem, onClose }: ProblemDrawerProps) {
+export default function ProblemDrawer({
+  problem,
+  onClose,
+  revisionId,
+  onRevisionComplete,
+}: ProblemDrawerProps) {
   const { markSolved, markAttempted, bookmarks, toggleBookmark, userProgress } = useProgressStore()
   const { startTimer, stopTimer, resetTimer, elapsed, isRunning } = useSolveTimer()
 
@@ -44,7 +51,7 @@ export default function ProblemDrawer({ problem, onClose }: ProblemDrawerProps) 
   const [submitting, setSubmitting] = useState(false)
 
   const timerResultRef = useRef<{ started_at: number; duration_seconds: number } | null>(null)
-  const notesTimeoutRef = useRef<ReturnType<typeof setTimeout>>()
+  const notesTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
 
   // Reset state when problem changes
   useEffect(() => {
@@ -99,6 +106,10 @@ export default function ProblemDrawer({ problem, onClose }: ProblemDrawerProps) 
         confidence: selectedConfidence,
         ...timerResultRef.current,
       })
+      if (revisionId) {
+        await api.post(`/api/progress/revisions/${revisionId}/complete`).catch(() => {})
+        onRevisionComplete?.(revisionId)
+      }
       setXpGained(xp_gained)
       setPhase('success')
       setTimeout(onClose, 2000)

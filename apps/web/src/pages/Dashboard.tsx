@@ -13,10 +13,88 @@ interface Revision {
   dueDate: number
 }
 
+interface DailyMission {
+  easy: boolean
+  medium: boolean
+  revision: boolean
+  allDone: boolean
+  xpReward: number
+}
+
 const DIFF_BADGE: Record<string, string> = {
   easy: 'bg-emerald-500/10 text-emerald-500',
   medium: 'bg-amber-500/10 text-amber-500',
   hard: 'bg-red-500/10 text-red-500',
+}
+
+function computeCurrentStreak(activeDates: string[]): number {
+  if (activeDates.length === 0) return 0
+  const dateSet = new Set(activeDates)
+  let streak = 0
+  const today = new Date()
+  for (let i = 0; i < 365; i++) {
+    const d = new Date(today)
+    d.setDate(d.getDate() - i)
+    if (dateSet.has(d.toISOString().slice(0, 10))) {
+      streak++
+    } else {
+      break
+    }
+  }
+  return streak
+}
+
+function StreakCalendar({ activeDates }: { activeDates: string[] }) {
+  const dateSet = new Set(activeDates)
+  const today = new Date()
+  const cells = Array.from({ length: 30 }, (_, i) => {
+    const d = new Date(today)
+    d.setDate(d.getDate() - (29 - i))
+    const str = d.toISOString().slice(0, 10)
+    return { date: str, active: dateSet.has(str), isToday: i === 29 }
+  })
+
+  return (
+    <div className="grid grid-cols-10 gap-1.5">
+      {cells.map(({ date, active, isToday }) => (
+        <div
+          key={date}
+          title={date}
+          className={[
+            'h-6 rounded-md transition-colors',
+            active
+              ? 'bg-emerald-500'
+              : isToday
+                ? 'bg-(--color-border) ring-2 ring-(--color-accent) ring-opacity-50'
+                : 'bg-(--color-border) opacity-40',
+          ].join(' ')}
+        />
+      ))}
+    </div>
+  )
+}
+
+function MissionTask({ label, done }: { label: string; done: boolean }) {
+  return (
+    <div className="flex items-center gap-2.5">
+      <div
+        className={[
+          'w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors shrink-0',
+          done ? 'border-emerald-500 bg-emerald-500' : 'border-(--color-border) bg-(--color-bg)',
+        ].join(' ')}
+      >
+        {done && <IconCheck size={10} className="text-white" strokeWidth={3} />}
+      </div>
+      <span
+        className={[
+          'text-sm transition-colors',
+          done ? 'line-through text-(--color-text-secondary)' : 'text-(--color-text-primary)',
+        ].join(' ')}
+      >
+        {label}
+      </span>
+    </div>
+  )
 }
 
 export default function DashboardPage() {
@@ -24,6 +102,9 @@ export default function DashboardPage() {
   const [revisions, setRevisions] = useState<Revision[]>([])
   const [revisionCount, setRevisionCount] = useState(0)
   const [completingId, setCompletingId] = useState<string | null>(null)
+  const [activeDates, setActiveDates] = useState<string[]>([])
+  const [mission, setMission] = useState<DailyMission | null>(null)
+  const [streak, setStreak] = useState(0)
 
   useEffect(() => {
     fetchStats()
@@ -34,6 +115,19 @@ export default function DashboardPage() {
         setRevisionCount(r.data.count)
       })
       .catch(() => {})
+
+    api
+      .get<{ activeDates: string[] }>('/api/progress/activity-streak')
+      .then((r) => {
+        setActiveDates(r.data.activeDates)
+        setStreak(computeCurrentStreak(r.data.activeDates))
+      })
+      .catch(() => setActiveDates([]))
+
+    api
+      .get<DailyMission>('/api/progress/daily-mission')
+      .then((r) => setMission(r.data))
+      .catch(() => setMission({ easy: false, medium: false, revision: false, allDone: false, xpReward: 150 }))
   }, [fetchStats])
 
   const totalSolved = stats?.solvedByDifficulty.reduce((s, d) => s + d.solved, 0) ?? 0
@@ -52,7 +146,7 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="space-y-6 max-w-7xl">
+    <div className="space-y-6 max-w-7xl pb-20 lg:pb-0">
       {/* ── Stat cards ────────────────────────────────────────────────────────── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
@@ -64,7 +158,7 @@ export default function DashboardPage() {
         />
         <StatCard
           label="Current Streak"
-          value="—"
+          value={streak > 0 ? `${streak}` : '—'}
           sub="days in a row"
           icon={<IconFlame size={18} strokeWidth={2} />}
           color="orange"
@@ -85,9 +179,61 @@ export default function DashboardPage() {
         />
       </div>
 
+      {/* ── Daily Mission + Streak calendar ───────────────────────────────────── */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div className="bg-(--color-surface) border border-(--color-border) rounded-xl p-5">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-sm font-semibold text-(--color-text-primary) flex items-center gap-2">
+              <span className="text-base">🎯</span>
+              Today's Mission
+            </h2>
+            <span className="text-xs font-semibold text-amber-500 bg-amber-500/10 px-2 py-0.5 rounded-full">
+              +{mission?.xpReward ?? 150} XP
+            </span>
+          </div>
+          {mission ? (
+            <div className="space-y-3">
+              <MissionTask label="Solve 1 Easy problem" done={mission.easy} />
+              <MissionTask label="Solve 1 Medium problem" done={mission.medium} />
+              <MissionTask label="Complete 1 Revision" done={mission.revision} />
+              {mission.allDone && (
+                <p className="text-xs text-emerald-500 font-semibold pt-1">
+                  ✓ Mission complete — XP awarded!
+                </p>
+              )}
+            </div>
+          ) : (
+            <div className="space-y-3 animate-pulse">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="flex items-center gap-2.5">
+                  <div className="w-5 h-5 rounded-full bg-(--color-border) opacity-40 shrink-0" />
+                  <div className="h-4 bg-(--color-border) rounded w-40 opacity-40" />
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="bg-(--color-surface) border border-(--color-border) rounded-xl p-5">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-sm font-semibold text-(--color-text-primary)">
+              Activity — Last 30 Days
+            </h2>
+            <span className="text-xs text-(--color-text-secondary)">
+              {activeDates.length} active days
+            </span>
+          </div>
+          <StreakCalendar activeDates={activeDates} />
+          <p className="text-xs text-(--color-text-secondary) mt-2">
+            {streak > 0
+              ? `${streak} day${streak !== 1 ? 's' : ''} current streak`
+              : 'Start solving to build your streak'}
+          </p>
+        </div>
+      </div>
+
       {/* ── Main grid ─────────────────────────────────────────────────────────── */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Topic progress */}
         <div className="lg:col-span-2 bg-(--color-surface) border border-(--color-border) rounded-xl p-5">
           <h2 className="text-sm font-semibold text-(--color-text-primary) mb-4">Topic Progress</h2>
           {stats && stats.topicBreakdown.length > 0 ? (
@@ -119,7 +265,6 @@ export default function DashboardPage() {
           )}
         </div>
 
-        {/* Friend activity feed */}
         <div className="bg-(--color-surface) border border-(--color-border) rounded-xl p-5">
           <h2 className="text-sm font-semibold text-(--color-text-primary) mb-4">Friend Activity</h2>
           <ActivityFeed />
@@ -204,4 +349,3 @@ function StatCard({
     </div>
   )
 }
-

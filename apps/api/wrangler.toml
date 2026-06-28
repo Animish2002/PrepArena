@@ -2,6 +2,7 @@ name = "preparena-api"
 main = "src/index.ts"
 compatibility_date = "2025-01-01"
 compatibility_flags = ["nodejs_compat"]
+account_id = "deaaf7f664dbc73849bfef93d8f21b2d"
 
 [[d1_databases]]
 binding = "DB"
@@ -24,24 +25,26 @@ bindings = [
   { name = "BATTLE_ROOM", class_name = "BattleRoom" },
 ]
 
+# new_sqlite_classes required for Cloudflare free plan
 [[migrations]]
 tag = "v1"
-new_classes = ["UserFeed", "BattleRoom"]
+new_sqlite_classes = ["UserFeed", "BattleRoom"]
 
-# ── Public vars (non-secret) ──────────────────────────────────────────────────
+# ── Vars (production values — overridden by .dev.vars for local dev) ──────────
 [vars]
-FRONTEND_URL        = "http://localhost:5173"
-GOOGLE_REDIRECT_URI = "http://localhost:8787/auth/google/callback"
-WORKER_URL          = "http://localhost:8787"
+FRONTEND_URL        = "https://preparena-web.pages.dev"
+GOOGLE_REDIRECT_URI = "https://preparena-api.animishchopade123.workers.dev/auth/google/callback"
+WORKER_URL          = "https://preparena-api.animishchopade123.workers.dev"
 
-# ── Secrets — set via CLI, never commit real values ───────────────────────────
-# wrangler secret put JWT_SECRET
-# wrangler secret put GOOGLE_CLIENT_ID
-# wrangler secret put GOOGLE_CLIENT_SECRET
-# wrangler secret put INTERNAL_SECRET
+# ── Secrets — push via CLI, never hardcode here ───────────────────────────────
+# Run once:
+#   wrangler secret put JWT_SECRET
+#   wrangler secret put GOOGLE_CLIENT_ID
+#   wrangler secret put GOOGLE_CLIENT_SECRET
+#   wrangler secret put INTERNAL_SECRET
 #
-# For local dev create a .dev.vars file (gitignored) with:
-#   JWT_SECRET=...
-#   GOOGLE_CLIENT_ID=...
-#   GOOGLE_CLIENT_SECRET=...
-#   INTERNAL_SECRET=...
+# For local dev create apps/api/.dev.vars (gitignored) with:
+#   JWT_SECRET=any-random-string
+#   GOOGLE_CLIENT_ID=your-google-client-id
+#   GOOGLE_CLIENT_SECRET=your-google-client-secret
+#   INTERNAL_SECRET=any-random-string

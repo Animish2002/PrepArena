@@ -315,9 +315,18 @@ router.get('/revisions/today', async (c) => {
       difficulty: problems.difficulty,
       platform: problems.platform,
       platformLink: problems.platformLink,
+      confidence: userProgress.confidence,
+      lastSolvedAt: userProgress.lastSolvedAt,
     })
     .from(revisionSchedule)
     .innerJoin(problems, eq(revisionSchedule.problemId, problems.id))
+    .leftJoin(
+      userProgress,
+      and(
+        eq(userProgress.problemId, revisionSchedule.problemId),
+        eq(userProgress.userId, userId),
+      ),
+    )
     .where(
       and(
         eq(revisionSchedule.userId, userId),
@@ -328,6 +337,143 @@ router.get('/revisions/today', async (c) => {
     .orderBy(revisionSchedule.dueDate)
 
   return c.json({ revisions: rows, count: rows.length })
+})
+
+// ─── GET /progress/revisions/upcoming ────────────────────────────────────────
+
+router.get('/revisions/upcoming', async (c) => {
+  const userId = c.get('userId')
+  const db = getDb(c.env)
+
+  const now = Date.now()
+  // Today midnight UTC
+  const todayMidnight = (() => {
+    const d = new Date(now)
+    d.setUTCHours(0, 0, 0, 0)
+    return d.getTime()
+  })()
+  const eightDaysLater = todayMidnight + 8 * DAY
+
+  const rows = await db
+    .select({
+      id: revisionSchedule.id,
+      dueDate: revisionSchedule.dueDate,
+      problemId: problems.id,
+      title: problems.title,
+      topic: problems.topic,
+      difficulty: problems.difficulty,
+      platform: problems.platform,
+      platformLink: problems.platformLink,
+    })
+    .from(revisionSchedule)
+    .innerJoin(problems, eq(revisionSchedule.problemId, problems.id))
+    .where(
+      and(
+        eq(revisionSchedule.userId, userId),
+        gte(revisionSchedule.dueDate, todayMidnight),
+        lte(revisionSchedule.dueDate, eightDaysLater),
+        eq(revisionSchedule.completed, 0),
+      ),
+    )
+    .orderBy(revisionSchedule.dueDate)
+
+  // Group by YYYY-MM-DD date string
+  type RevisionRow = (typeof rows)[number]
+  const upcoming: Record<string, RevisionRow[]> = {}
+  for (const row of rows) {
+    const d = new Date(row.dueDate ?? 0)
+    const dateStr = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')}`
+    if (!upcoming[dateStr]) upcoming[dateStr] = []
+    upcoming[dateStr].push(row)
+  }
+
+  return c.json({ upcoming })
+})
+
+// ─── GET /progress/activity-streak ───────────────────────────────────────────
+
+router.get('/activity-streak', async (c) => {
+  const userId = c.get('userId')
+  const db = getDb(c.env)
+
+  const rows = await db
+    .select({ createdAt: activityLog.createdAt })
+    .from(activityLog)
+    .where(and(eq(activityLog.userId, userId), eq(activityLog.type, 'solved')))
+
+  // Unique YYYY-MM-DD strings
+  const daySet = new Set(
+    rows.map((r) => {
+      const d = new Date(r.createdAt ?? 0)
+      return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')}`
+    }),
+  )
+
+  const activeDates = [...daySet].sort()
+
+  return c.json({ activeDates })
+})
+
+// ─── GET /progress/daily-mission ─────────────────────────────────────────────
+
+router.get('/daily-mission', async (c) => {
+  const userId = c.get('userId')
+  const db = getDb(c.env)
+
+  const now = Date.now()
+  // Floor to start of today (UTC midnight)
+  const todayStart = (() => {
+    const d = new Date(now)
+    d.setUTCHours(0, 0, 0, 0)
+    return d.getTime()
+  })()
+
+  const [easyRow, mediumRow, revisionRow] = await Promise.all([
+    // Count easy problems solved today
+    db
+      .select({ cnt: sql<number>`COUNT(*)` })
+      .from(solveSessions)
+      .innerJoin(problems, eq(solveSessions.problemId, problems.id))
+      .where(
+        and(
+          eq(solveSessions.userId, userId),
+          eq(problems.difficulty, 'easy'),
+          gte(solveSessions.startedAt, todayStart),
+        ),
+      ),
+
+    // Count medium problems solved today
+    db
+      .select({ cnt: sql<number>`COUNT(*)` })
+      .from(solveSessions)
+      .innerJoin(problems, eq(solveSessions.problemId, problems.id))
+      .where(
+        and(
+          eq(solveSessions.userId, userId),
+          eq(problems.difficulty, 'medium'),
+          gte(solveSessions.startedAt, todayStart),
+        ),
+      ),
+
+    // Count revisions from activity log today
+    db
+      .select({ cnt: sql<number>`COUNT(*)` })
+      .from(activityLog)
+      .where(
+        and(
+          eq(activityLog.userId, userId),
+          eq(activityLog.type, 'revision'),
+          gte(activityLog.createdAt, todayStart),
+        ),
+      ),
+  ])
+
+  const easy = (easyRow[0]?.cnt ?? 0) >= 1
+  const medium = (mediumRow[0]?.cnt ?? 0) >= 1
+  const revision = (revisionRow[0]?.cnt ?? 0) >= 1
+  const allDone = easy && medium && revision
+
+  return c.json({ easy, medium, revision, allDone, xpReward: 150 })
 })
 
 // ─── POST /progress/revisions/:id/complete ───────────────────────────────────

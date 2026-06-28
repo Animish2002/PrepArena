@@ -4,6 +4,7 @@ import { AnimatePresence, motion } from 'motion/react'
 import { useAuthStore } from '../../store/authStore'
 import Sidebar from './Sidebar'
 import TopBar from './TopBar'
+import MobileNav from './MobileNav'
 import ToastStack from '../ui/Toast'
 import { useFeedWebSocket } from '../../hooks/useFeedWebSocket'
 
@@ -37,6 +38,7 @@ export default function AppLayout() {
         onMobileClose={() => setMobileOpen(false)}
       />
 
+      <MobileNav />
       <div className="flex-1 flex flex-col overflow-hidden min-w-0">
         <TopBar onMenuToggle={() => setMobileOpen((o) => !o)} />
 

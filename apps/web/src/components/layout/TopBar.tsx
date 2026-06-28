@@ -10,6 +10,8 @@ const PAGE_TITLES: Record<string, string> = {
   '/leaderboard': 'Leaderboard',
   '/battles': 'Battles',
   '/revisions': 'Revisions',
+  '/profile': 'Profile',
+  '/groups': 'Groups',
 }
 
 interface TopBarProps {

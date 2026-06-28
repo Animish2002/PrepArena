@@ -208,7 +208,7 @@ export default function FriendProgressModal({ friend, onClose }: FriendProgressM
                         tickLine={false}
                       />
                       <Tooltip
-                        formatter={(value: number) => [`${value}%`, undefined]}
+                        formatter={(value) => `${value}%`}
                         contentStyle={{
                           background: 'var(--color-surface)',
                           border: `1px solid ${borderColor}`,

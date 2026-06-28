@@ -161,7 +161,7 @@ export default function JoinPage() {
 
               <button
                 onClick={handleAccept}
-                disabled={state === 'accepting'}
+                disabled={false}
                 className="w-full py-3 rounded-xl bg-(--color-accent) text-white font-semibold text-sm hover:opacity-90 transition-opacity disabled:opacity-60"
               >
                 {joinData.alreadyFriends ? 'Go to Dashboard' : 'Accept & Join PrepArena'}

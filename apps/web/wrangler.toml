@@ -1,0 +1,6 @@
+name = "preparena-web"
+pages_build_output_dir = "dist"
+compatibility_date = "2025-01-01"
+
+# Build env vars are set in Cloudflare Pages dashboard (Settings → Environment Variables)
+# Required: VITE_API_URL = https://preparena-api.YOUR_SUBDOMAIN.workers.dev

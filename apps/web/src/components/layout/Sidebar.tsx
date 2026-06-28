@@ -6,6 +6,8 @@ import {
   IconTrophy,
   IconSwords,
   IconCalendar,
+  IconUser,
+  IconUsersGroup,
   IconLogout,
   IconChevronLeft,
   IconChevronRight,
@@ -20,6 +22,8 @@ const NAV_ITEMS = [
   { label: 'Leaderboard', to: '/leaderboard', icon: IconTrophy },
   { label: 'Battles', to: '/battles', icon: IconSwords },
   { label: 'Revisions', to: '/revisions', icon: IconCalendar },
+  { label: 'Groups', to: '/groups', icon: IconUsersGroup },
+  { label: 'Profile', to: '/profile', icon: IconUser },
 ]
 
 interface SidebarProps {
@@ -62,14 +66,18 @@ function NavContent({ collapsed, onLinkClick }: { collapsed: boolean; onLinkClic
           collapsed ? 'justify-center' : 'gap-2'
         }`}
       >
-        <div className="w-7 h-7 rounded-lg bg-(--color-accent) flex items-center justify-center shrink-0">
-          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden>
-            <polygon points="7,1 13,4.5 13,10.5 7,14 1,10.5 1,4.5" stroke="white" strokeWidth="1.5" fill="none" />
-            <polygon points="7,5 9.5,7 7,9 4.5,7" fill="white" />
-          </svg>
-        </div>
-        {!collapsed && (
-          <span className="font-bold text-base text-(--color-accent) tracking-tight">PrepArena</span>
+        {collapsed ? (
+          <img
+            src="/assets/PrepArena_favicon.png"
+            alt="PrepArena"
+            className="w-7 h-7 object-contain rounded-lg"
+          />
+        ) : (
+          <img
+            src="/assets/PrepArena_Logo.png"
+            alt="PrepArena"
+            className="h-7 w-auto object-contain"
+          />
         )}
       </div>
 
@@ -141,7 +149,7 @@ export default function Sidebar({ collapsed, onToggleCollapse, mobileOpen, onMob
       {/* ── Desktop sidebar ─────────────────────────────────────────────────── */}
       <aside
         className={[
-          'hidden lg:flex flex-col flex-shrink-0 relative',
+          'hidden lg:flex flex-col shrink-0 relative',
           'bg-(--color-surface) border-r border-(--color-border)',
           'transition-all duration-300 overflow-hidden',
           collapsed ? 'w-16' : 'w-60',

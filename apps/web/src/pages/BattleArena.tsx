@@ -298,7 +298,7 @@ function ScoreRow({ user, score, isMe }: { user: BattleUser; score: number; isMe
 // ── Result screen ─────────────────────────────────────────────────────────────
 
 function ResultScreen({
-  battle,
+  battle: _,
   myUser,
   theirUser,
   myScore,

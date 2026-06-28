@@ -1,4 +1,4 @@
-import { IconBolt, IconSun, IconMoon } from '@tabler/icons-react'
+import { IconSun, IconMoon } from '@tabler/icons-react'
 import { useTheme } from '../context/ThemeContext'
 
 const API_URL = import.meta.env.VITE_API_URL as string
@@ -18,16 +18,15 @@ export default function LoginPage() {
 
       <div className="w-full max-w-sm">
         <div className="bg-(--color-surface) border border-(--color-border) rounded-2xl p-8 shadow-2xl">
-          <div className="flex flex-col items-center gap-3 mb-8">
-            <div className="w-12 h-12 rounded-2xl bg-(--color-accent) flex items-center justify-center shadow-lg">
-              <IconBolt size={24} className="text-white" />
-            </div>
-            <div className="text-center">
-              <h1 className="text-2xl font-bold text-(--color-text-primary)">PrepArena</h1>
-              <p className="text-sm text-(--color-text-secondary) mt-1">
-                Track your DSA journey with friends
-              </p>
-            </div>
+          <div className="flex flex-col items-center gap-4 mb-8">
+            <img
+              src="/assets/PrepArena_Logo.png"
+              alt="PrepArena"
+              className="h-14 w-auto object-contain"
+            />
+            <p className="text-sm text-(--color-text-secondary)">
+              Track your DSA journey with friends
+            </p>
           </div>
 
           <div className="flex items-center gap-3 mb-6">

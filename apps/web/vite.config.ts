@@ -16,16 +16,18 @@ export default defineConfig({
         theme_color: '#0f0f0f',
         background_color: '#0f0f0f',
         display: 'standalone',
+        start_url: '/dashboard',
         icons: [
           {
-            src: '/icon-192.png',
+            src: '/assets/PrepArena_favicon.png',
             sizes: '192x192',
             type: 'image/png',
           },
           {
-            src: '/icon-512.png',
+            src: '/assets/PrepArena_favicon.png',
             sizes: '512x512',
             type: 'image/png',
+            purpose: 'any maskable',
           },
         ],
       },

@@ -8,6 +8,8 @@ import friendsRouter from './routes/friends'
 import leaderboardRouter from './routes/leaderboard'
 import battlesRouter, { internalBattlesRouter } from './routes/battles'
 import feedRouter from './routes/feed'
+import profileRouter from './routes/profile'
+import groupsRouter from './routes/groups'
 
 // Durable Object classes must be exported from the main entry point
 export { UserFeed } from './durable/UserFeed'
@@ -35,6 +37,8 @@ app.route('/api/friends', friendsRouter)
 app.route('/api/leaderboard', leaderboardRouter)
 app.route('/api/battles', battlesRouter)
 app.route('/api/feed', feedRouter)
+app.route('/api/profile', profileRouter)
+app.route('/api/groups', groupsRouter)
 app.route('/internal/battles', internalBattlesRouter)
 
 export default app

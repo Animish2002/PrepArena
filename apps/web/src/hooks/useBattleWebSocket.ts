@@ -33,7 +33,7 @@ export function useBattleWebSocket(battleId: string) {
   const wsRef = useRef<WebSocket | null>(null)
   const attemptRef = useRef(0)
   const unmountedRef = useRef(false)
-  const pingRef = useRef<ReturnType<typeof setInterval>>()
+  const pingRef = useRef<ReturnType<typeof setInterval> | undefined>(undefined)
 
   const connect = useCallback(() => {
     if (unmountedRef.current) return
