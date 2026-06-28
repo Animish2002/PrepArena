@@ -22,7 +22,7 @@ app.use('*', (c, next) =>
     origin: c.env.FRONTEND_URL,
     credentials: true,
     allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowHeaders: ['Content-Type'],
+    allowHeaders: ['Content-Type', 'Authorization'],
   })(c, next),
 )
 
