@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react'
-import { IconCheck, IconFlame, IconBolt, IconCalendar } from '@tabler/icons-react'
+import { useNavigate } from 'react-router-dom'
+import { IconCheck, IconFlame, IconBolt, IconCalendar, IconUsers, IconX } from '@tabler/icons-react'
+import { motion, AnimatePresence } from 'motion/react'
 import { useProgressStore } from '../store/progressStore'
+import { useFriendStore } from '../store/friendStore'
 import api from '../lib/api'
 import ActivityFeed from '../components/feed/ActivityFeed'
 
@@ -98,7 +101,10 @@ function MissionTask({ label, done }: { label: string; done: boolean }) {
 }
 
 export default function DashboardPage() {
+  const navigate = useNavigate()
   const { stats, fetchStats } = useProgressStore()
+  const pendingCount = useFriendStore((s) => s.pendingCount)
+  const [bannerDismissed, setBannerDismissed] = useState(false)
   const [revisions, setRevisions] = useState<Revision[]>([])
   const [revisionCount, setRevisionCount] = useState(0)
   const [completingId, setCompletingId] = useState<string | null>(null)
@@ -147,6 +153,39 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6 max-w-7xl pb-20 lg:pb-0">
+      {/* ── Friend request banner ─────────────────────────────────────────────── */}
+      <AnimatePresence>
+        {pendingCount > 0 && !bannerDismissed && (
+          <motion.div
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.2 }}
+            className="flex items-center gap-3 px-4 py-3 rounded-xl bg-(--color-accent)/10 border border-(--color-accent)/25 text-(--color-accent)"
+          >
+            <IconUsers size={16} className="shrink-0" />
+            <p className="text-sm font-medium flex-1">
+              You have{' '}
+              <span className="font-bold">{pendingCount}</span>{' '}
+              pending friend {pendingCount === 1 ? 'request' : 'requests'}
+            </p>
+            <button
+              onClick={() => navigate('/friends?tab=requests')}
+              className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-(--color-accent)/15 hover:bg-(--color-accent)/25 transition-colors shrink-0"
+            >
+              View Requests →
+            </button>
+            <button
+              onClick={() => setBannerDismissed(true)}
+              className="p-1 rounded-lg opacity-60 hover:opacity-100 transition-opacity shrink-0"
+              aria-label="Dismiss"
+            >
+              <IconX size={14} />
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* ── Stat cards ────────────────────────────────────────────────────────── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard

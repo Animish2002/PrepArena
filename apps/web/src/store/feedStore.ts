@@ -11,31 +11,46 @@ export interface FeedEvent {
   avatarUrl?: string | null
 }
 
+export interface ToastAction {
+  label: string
+  variant: 'primary' | 'danger'
+  onClick: () => void
+}
+
 export interface Toast {
   id: string
   message: string
-  type: 'success' | 'info' | 'battle'
+  type: 'success' | 'info' | 'battle' | 'friend_request'
+  persistent?: boolean
+  actions?: ToastAction[]
 }
 
 interface FeedStore {
   events: FeedEvent[]
   toasts: Toast[]
   pushEvent: (event: FeedEvent) => void
-  addToast: (message: string, type: Toast['type']) => void
+  addToast: (
+    message: string,
+    type: Toast['type'],
+    options?: { persistent?: boolean; actions?: ToastAction[] },
+  ) => void
   removeToast: (id: string) => void
 }
 
 export const useFeedStore = create<FeedStore>((set) => ({
   events: [],
   toasts: [],
+
   pushEvent: (event) =>
     set((s) => ({
       events: [event, ...s.events].slice(0, 50),
     })),
-  addToast: (message, type) => {
+
+  addToast: (message, type, options) => {
     const id = crypto.randomUUID()
-    set((s) => ({ toasts: [...s.toasts, { id, message, type }] }))
+    set((s) => ({ toasts: [...s.toasts, { id, message, type, ...options }] }))
   },
+
   removeToast: (id) =>
     set((s) => ({ toasts: s.toasts.filter((t) => t.id !== id) })),
 }))

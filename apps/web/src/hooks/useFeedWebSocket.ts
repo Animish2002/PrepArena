@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useRef } from 'react'
 import { useFeedStore, type FeedEvent } from '../store/feedStore'
+import { useFriendStore } from '../store/friendStore'
+import api from '../lib/api'
 
 const BACKOFF = [2000, 4000, 8000, 16_000, 30_000]
 
@@ -30,6 +32,8 @@ function toastMessage(event: FeedEvent): { msg: string; type: 'success' | 'info'
 export function useFeedWebSocket() {
   const pushEvent = useFeedStore((s) => s.pushEvent)
   const addToast = useFeedStore((s) => s.addToast)
+  const addPendingRequest = useFriendStore((s) => s.addPendingRequest)
+  const removePendingRequest = useFriendStore((s) => s.removePendingRequest)
 
   const wsRef = useRef<WebSocket | null>(null)
   const attemptRef = useRef(0)
@@ -65,7 +69,55 @@ export function useFeedWebSocket() {
       }
 
       const data = msg as Record<string, unknown>
-      if (data.type === 'pong' || !data.id) return
+      if (data.type === 'pong') return
+
+      // ── Friend request ────────────────────────────────────────────────────
+      if (data.type === 'friend_request') {
+        const req = data as {
+          friendshipId: string
+          from: { id: string; name: string; username: string; avatarUrl?: string | null }
+        }
+
+        addPendingRequest({
+          friendshipId: req.friendshipId,
+          from: { ...req.from, problemsSolved: 0 },
+          sentAt: Date.now(),
+        })
+
+        addToast(
+          `${req.from.name} (@${req.from.username}) sent you a friend request`,
+          'friend_request',
+          {
+            persistent: true,
+            actions: [
+              {
+                label: '✓ Accept',
+                variant: 'primary',
+                onClick: () => {
+                  api
+                    .post(`/api/friends/accept/${req.friendshipId}`)
+                    .then(() => removePendingRequest(req.friendshipId))
+                    .catch(() => {})
+                },
+              },
+              {
+                label: '✗ Decline',
+                variant: 'danger',
+                onClick: () => {
+                  api
+                    .post(`/api/friends/decline/${req.friendshipId}`)
+                    .then(() => removePendingRequest(req.friendshipId))
+                    .catch(() => {})
+                },
+              },
+            ],
+          },
+        )
+        return
+      }
+
+      // ── Regular feed event ────────────────────────────────────────────────
+      if (!data.id) return
 
       const event = msg as FeedEvent
       pushEvent(event)
@@ -83,7 +135,7 @@ export function useFeedWebSocket() {
     }
 
     ws.onerror = () => ws.close()
-  }, [pushEvent, addToast])
+  }, [pushEvent, addToast, addPendingRequest, removePendingRequest])
 
   useEffect(() => {
     connect()

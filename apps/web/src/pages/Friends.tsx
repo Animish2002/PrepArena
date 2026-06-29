@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import {
   IconUserPlus,
   IconUsers,
@@ -9,9 +10,13 @@ import {
   IconFlame,
   IconBolt,
   IconLoader2,
+  IconUserCheck,
+  IconX,
 } from '@tabler/icons-react'
 import api from '../lib/api'
 import FriendProgressModal from '../components/friends/FriendProgressModal'
+import { useFriendStore, type PendingRequest } from '../store/friendStore'
+import { useFeedStore } from '../store/feedStore'
 
 interface Friend {
   id: string
@@ -29,11 +34,23 @@ interface SearchUser {
   name: string
   username: string
   avatarUrl?: string | null
+  is_friend: boolean
+  pending_request: boolean
 }
 
-type Tab = 'friends' | 'add'
+type Tab = 'friends' | 'add' | 'requests'
 
-function InitialAvatar({ name, size = 40 }: { name: string; size?: number }) {
+function Avatar({ name, avatarUrl, size = 40 }: { name: string; avatarUrl?: string | null; size?: number }) {
+  if (avatarUrl) {
+    return (
+      <img
+        src={avatarUrl}
+        alt={name}
+        style={{ width: size, height: size }}
+        className="rounded-full object-cover shrink-0"
+      />
+    )
+  }
   return (
     <div
       style={{ width: size, height: size, fontSize: size * 0.38 }}
@@ -45,7 +62,10 @@ function InitialAvatar({ name, size = 40 }: { name: string; size?: number }) {
 }
 
 export default function FriendsPage() {
-  const [tab, setTab] = useState<Tab>('friends')
+  const [searchParams] = useSearchParams()
+  const initTab = (searchParams.get('tab') as Tab) ?? 'friends'
+  const [tab, setTab] = useState<Tab>(initTab)
+
   const [friends, setFriends] = useState<Friend[]>([])
   const [loadingFriends, setLoadingFriends] = useState(true)
   const [selectedFriend, setSelectedFriend] = useState<Friend | null>(null)
@@ -63,6 +83,12 @@ export default function FriendsPage() {
   const [addingId, setAddingId] = useState<string | null>(null)
   const searchTimeout = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
 
+  // Pending requests
+  const { pendingRequests, pendingCount, setPendingRequests, removePendingRequest } = useFriendStore()
+  const [loadingPending, setLoadingPending] = useState(false)
+  const [actioningId, setActioningId] = useState<string | null>(null)
+  const addToast = useFeedStore((s) => s.addToast)
+
   useEffect(() => {
     setLoadingFriends(true)
     api
@@ -71,6 +97,16 @@ export default function FriendsPage() {
       .catch(() => {})
       .finally(() => setLoadingFriends(false))
   }, [])
+
+  useEffect(() => {
+    if (tab !== 'requests') return
+    setLoadingPending(true)
+    api
+      .get<{ requests: PendingRequest[] }>('/api/friends/pending')
+      .then((r) => setPendingRequests(r.data.requests))
+      .catch(() => {})
+      .finally(() => setLoadingPending(false))
+  }, [tab, setPendingRequests])
 
   async function generateInviteLink() {
     setGeneratingLink(true)
@@ -112,10 +148,36 @@ export default function FriendsPage() {
       await api.post(`/api/friends/request/${userId}`)
       setAddedIds((prev) => new Set([...prev, userId]))
     } catch {
-      // May already be friends or pending — treat as added
       setAddedIds((prev) => new Set([...prev, userId]))
     } finally {
       setAddingId(null)
+    }
+  }
+
+  async function acceptRequest(friendshipId: string) {
+    setActioningId(friendshipId)
+    try {
+      await api.post(`/api/friends/accept/${friendshipId}`)
+      removePendingRequest(friendshipId)
+      addToast('Friend request accepted!', 'success')
+      // Refresh friends list
+      api.get<{ friends: Friend[] }>('/api/friends').then((r) => setFriends(r.data.friends)).catch(() => {})
+    } catch {
+      addToast('Failed to accept request', 'info')
+    } finally {
+      setActioningId(null)
+    }
+  }
+
+  async function declineRequest(friendshipId: string) {
+    setActioningId(friendshipId)
+    try {
+      await api.post(`/api/friends/decline/${friendshipId}`)
+      removePendingRequest(friendshipId)
+    } catch {
+      addToast('Failed to decline request', 'info')
+    } finally {
+      setActioningId(null)
     }
   }
 
@@ -139,6 +201,15 @@ export default function FriendsPage() {
         <TabButton active={tab === 'add'} onClick={() => setTab('add')}>
           <IconUserPlus size={15} />
           Add Friends
+        </TabButton>
+        <TabButton active={tab === 'requests'} onClick={() => setTab('requests')}>
+          <IconUserCheck size={15} />
+          Requests
+          {pendingCount > 0 && (
+            <span className="bg-red-500/15 text-red-500 text-xs px-1.5 py-0.5 rounded-full font-semibold">
+              {pendingCount}
+            </span>
+          )}
         </TabButton>
       </div>
 
@@ -176,6 +247,35 @@ export default function FriendsPage() {
         </>
       )}
 
+      {/* ── Requests ─────────────────────────────────────────────────────────── */}
+      {tab === 'requests' && (
+        <div className="space-y-3">
+          {loadingPending ? (
+            <div className="flex items-center justify-center py-20">
+              <IconLoader2 size={24} className="animate-spin text-(--color-text-secondary)" />
+            </div>
+          ) : pendingRequests.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-20 gap-2">
+              <IconUserCheck size={32} className="text-(--color-text-secondary) opacity-40" />
+              <p className="text-(--color-text-primary) font-semibold">No pending requests</p>
+              <p className="text-sm text-(--color-text-secondary)">
+                When someone sends you a request, it'll appear here
+              </p>
+            </div>
+          ) : (
+            pendingRequests.map((req) => (
+              <RequestCard
+                key={req.friendshipId}
+                request={req}
+                actioning={actioningId === req.friendshipId}
+                onAccept={() => acceptRequest(req.friendshipId)}
+                onDecline={() => declineRequest(req.friendshipId)}
+              />
+            ))
+          )}
+        </div>
+      )}
+
       {/* ── Add Friends ──────────────────────────────────────────────────────── */}
       {tab === 'add' && (
         <div className="space-y-8">
@@ -203,7 +303,6 @@ export default function FriendsPage() {
               </button>
             ) : (
               <div className="space-y-3">
-                {/* Link display */}
                 <div className="flex items-center gap-2 p-3 bg-(--color-bg) border border-(--color-border) rounded-xl">
                   <p className="flex-1 text-xs text-(--color-text-secondary) truncate font-mono select-all">
                     {inviteLink}
@@ -216,8 +315,6 @@ export default function FriendsPage() {
                     {copied ? 'Copied!' : 'Copy'}
                   </button>
                 </div>
-
-                {/* Share buttons */}
                 <div className="flex gap-2">
                   <a
                     href={`https://wa.me/?text=${waText}`}
@@ -271,22 +368,15 @@ export default function FriendsPage() {
             {searchResults.length > 0 && (
               <div className="space-y-2">
                 {searchResults.map((user) => {
-                  const isAdded = addedIds.has(user.id)
+                  const isPending = user.pending_request || addedIds.has(user.id)
+                  const isFriend = user.is_friend
                   const isAdding = addingId === user.id
                   return (
                     <div
                       key={user.id}
                       className="flex items-center gap-3 p-3 rounded-xl border border-(--color-border) bg-(--color-bg)"
                     >
-                      {user.avatarUrl ? (
-                        <img
-                          src={user.avatarUrl}
-                          alt={user.name}
-                          className="w-9 h-9 rounded-full object-cover shrink-0"
-                        />
-                      ) : (
-                        <InitialAvatar name={user.name} size={36} />
-                      )}
+                      <Avatar name={user.name} avatarUrl={user.avatarUrl} size={36} />
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium text-(--color-text-primary) truncate">
                           {user.name}
@@ -294,22 +384,26 @@ export default function FriendsPage() {
                         <p className="text-xs text-(--color-text-secondary)">@{user.username}</p>
                       </div>
                       <button
-                        onClick={() => addFriend(user.id)}
-                        disabled={isAdded || isAdding}
-                        className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
-                          isAdded
+                        onClick={() => !isFriend && !isPending && addFriend(user.id)}
+                        disabled={isFriend || isPending || isAdding}
+                        className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors disabled:opacity-70 ${
+                          isFriend
                             ? 'bg-emerald-500/10 text-emerald-600'
-                            : 'bg-(--color-accent)/10 text-(--color-accent) hover:bg-(--color-accent)/20'
-                        } disabled:opacity-60`}
+                            : isPending
+                              ? 'bg-(--color-border) text-(--color-text-secondary)'
+                              : 'bg-(--color-accent)/10 text-(--color-accent) hover:bg-(--color-accent)/20'
+                        }`}
                       >
                         {isAdding ? (
                           <IconLoader2 size={12} className="animate-spin" />
-                        ) : isAdded ? (
+                        ) : isFriend ? (
                           <IconCheck size={12} />
+                        ) : isPending ? (
+                          <IconUserCheck size={12} />
                         ) : (
                           <IconUserPlus size={12} />
                         )}
-                        {isAdded ? 'Requested' : 'Add Friend'}
+                        {isFriend ? 'Friends' : isPending ? 'Request Sent' : 'Add Friend'}
                       </button>
                     </div>
                   )
@@ -357,6 +451,51 @@ function TabButton({
   )
 }
 
+function RequestCard({
+  request,
+  actioning,
+  onAccept,
+  onDecline,
+}: {
+  request: PendingRequest
+  actioning: boolean
+  onAccept: () => void
+  onDecline: () => void
+}) {
+  return (
+    <div className="flex items-center gap-4 p-4 bg-(--color-surface) border border-(--color-border) rounded-2xl">
+      <Avatar name={request.from.name} avatarUrl={request.from.avatarUrl} size={44} />
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-semibold text-(--color-text-primary) truncate">
+          {request.from.name}
+        </p>
+        <p className="text-xs text-(--color-text-secondary)">@{request.from.username}</p>
+        <p className="text-xs text-(--color-text-secondary) mt-0.5">
+          {request.from.problemsSolved} problems solved
+        </p>
+      </div>
+      <div className="flex gap-2 shrink-0">
+        <button
+          onClick={onAccept}
+          disabled={actioning}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 transition-colors disabled:opacity-50"
+        >
+          {actioning ? <IconLoader2 size={12} className="animate-spin" /> : <IconCheck size={12} />}
+          Accept
+        </button>
+        <button
+          onClick={onDecline}
+          disabled={actioning}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-red-500/10 text-red-500 hover:bg-red-500/20 transition-colors disabled:opacity-50"
+        >
+          <IconX size={12} />
+          Decline
+        </button>
+      </div>
+    </div>
+  )
+}
+
 function FriendCard({
   friend,
   onViewProgress,
@@ -366,29 +505,13 @@ function FriendCard({
 }) {
   return (
     <div className="bg-(--color-surface) border border-(--color-border) rounded-2xl p-4 flex flex-col gap-4 hover:border-(--color-accent)/40 transition-colors">
-      {/* Avatar + identity */}
       <div className="flex items-center gap-3">
-        {friend.avatarUrl ? (
-          <img
-            src={friend.avatarUrl}
-            alt={friend.name}
-            className="w-10 h-10 rounded-full object-cover shrink-0"
-          />
-        ) : (
-          <div
-            style={{ width: 40, height: 40, fontSize: 40 * 0.38 }}
-            className="rounded-full bg-(--color-accent)/15 flex items-center justify-center text-(--color-accent) font-bold shrink-0"
-          >
-            {friend.name?.[0]?.toUpperCase() ?? '?'}
-          </div>
-        )}
+        <Avatar name={friend.name} avatarUrl={friend.avatarUrl} size={40} />
         <div className="min-w-0">
           <p className="text-sm font-semibold text-(--color-text-primary) truncate">{friend.name}</p>
           <p className="text-xs text-(--color-text-secondary) truncate">@{friend.username}</p>
         </div>
       </div>
-
-      {/* Stats */}
       <div className="grid grid-cols-3 gap-2">
         <MiniStat
           icon={<IconBolt size={12} className="text-amber-500" />}
@@ -406,8 +529,6 @@ function FriendCard({
           value={String(friend.problemsSolvedThisWeek)}
         />
       </div>
-
-      {/* Action */}
       <button
         onClick={onViewProgress}
         className="w-full py-2 rounded-xl text-xs font-semibold border border-(--color-border) text-(--color-text-secondary) hover:border-(--color-accent)/50 hover:text-(--color-accent) transition-colors"
@@ -418,15 +539,7 @@ function FriendCard({
   )
 }
 
-function MiniStat({
-  icon,
-  label,
-  value,
-}: {
-  icon: React.ReactNode
-  label: string
-  value: string
-}) {
+function MiniStat({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
   return (
     <div className="flex flex-col items-center gap-0.5 bg-(--color-bg) rounded-lg py-2">
       {icon}
@@ -435,4 +548,3 @@ function MiniStat({
     </div>
   )
 }
-

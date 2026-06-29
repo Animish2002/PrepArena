@@ -47,6 +47,20 @@ function weekStart(ts: number): number {
   return d.getTime()
 }
 
+async function broadcastToUser(env: AppEnv['Bindings'], targetUserId: string, event: object) {
+  try {
+    const doId = env.USER_FEED.idFromName(targetUserId)
+    const stub = env.USER_FEED.get(doId)
+    await stub.fetch(new Request('https://internal/push', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(event),
+    }))
+  } catch {
+    // DO may not be active — non-fatal
+  }
+}
+
 // ─── POST /friends/invite ─────────────────────────────────────────────────────
 
 router.post('/invite', async (c) => {
@@ -159,6 +173,75 @@ router.post('/accept/:friendshipId', async (c) => {
   return c.json({ success: true })
 })
 
+// ─── POST /friends/decline/:friendshipId ─────────────────────────────────────
+
+router.post('/decline/:friendshipId', async (c) => {
+  const userId = c.get('userId')
+  const friendshipId = c.req.param('friendshipId')
+  const db = getDb(c.env)
+
+  const [f] = await db
+    .select({ id: friendships.id })
+    .from(friendships)
+    .where(
+      and(
+        eq(friendships.id, friendshipId),
+        eq(friendships.userB, userId),
+        eq(friendships.status, 'pending'),
+      ),
+    )
+    .limit(1)
+
+  if (!f) return c.json({ error: 'Request not found' }, 404)
+
+  await db.delete(friendships).where(eq(friendships.id, friendshipId))
+
+  return c.json({ success: true })
+})
+
+// ─── GET /friends/pending ─────────────────────────────────────────────────────
+
+router.get('/pending', async (c) => {
+  const userId = c.get('userId')
+  const db = getDb(c.env)
+
+  const pending = await db
+    .select({
+      friendshipId: friendships.id,
+      sentAt: friendships.createdAt,
+      senderId: friendships.userA,
+    })
+    .from(friendships)
+    .where(and(eq(friendships.userB, userId), eq(friendships.status, 'pending')))
+    .orderBy(desc(friendships.createdAt))
+
+  if (pending.length === 0) return c.json({ requests: [] })
+
+  const requests = await Promise.all(
+    pending.map(async ({ friendshipId, sentAt, senderId }) => {
+      const [[user], [solvedRow]] = await Promise.all([
+        db
+          .select({ id: users.id, name: users.name, username: users.username, avatarUrl: users.avatarUrl })
+          .from(users)
+          .where(eq(users.id, senderId))
+          .limit(1),
+        db
+          .select({ count: count() })
+          .from(userProgress)
+          .where(and(eq(userProgress.userId, senderId), eq(userProgress.status, 'solved'))),
+      ])
+
+      return {
+        friendshipId,
+        sentAt: sentAt ?? 0,
+        from: { ...(user ?? { id: senderId, name: 'Unknown', username: 'unknown', avatarUrl: null }), problemsSolved: solvedRow?.count ?? 0 },
+      }
+    }),
+  )
+
+  return c.json({ requests })
+})
+
 // ─── GET /friends/search?q= ───────────────────────────────────────────────────
 
 router.get('/search', async (c) => {
@@ -168,16 +251,39 @@ router.get('/search', async (c) => {
   const userId = c.get('userId')
   const db = getDb(c.env)
 
-  const results = await db
-    .select({ id: users.id, name: users.name, username: users.username, avatarUrl: users.avatarUrl })
-    .from(users)
-    .where(like(users.username, `%${q}%`))
-    .limit(15)
+  const [results, userFriendships] = await Promise.all([
+    db
+      .select({ id: users.id, name: users.name, username: users.username, avatarUrl: users.avatarUrl })
+      .from(users)
+      .where(like(users.username, `%${q}%`))
+      .limit(15),
+    db
+      .select({ userA: friendships.userA, userB: friendships.userB, status: friendships.status })
+      .from(friendships)
+      .where(or(eq(friendships.userA, userId), eq(friendships.userB, userId))),
+  ])
 
-  return c.json({ users: results.filter((u) => u.id !== userId) })
+  const friendshipMap = new Map<string, string>()
+  for (const f of userFriendships) {
+    const otherId = f.userA === userId ? f.userB : f.userA
+    friendshipMap.set(otherId, f.status)
+  }
+
+  const filtered = results
+    .filter((u) => u.id !== userId)
+    .map((u) => {
+      const status = friendshipMap.get(u.id)
+      return {
+        ...u,
+        is_friend: status === 'accepted',
+        pending_request: status === 'pending',
+      }
+    })
+
+  return c.json({ users: filtered })
 })
 
-// ─── POST /friends/request/:userId ───────────────────────────────────────────
+// ─── POST /friends/request/:targetId ─────────────────────────────────────────
 
 router.post('/request/:targetId', async (c) => {
   const userId = c.get('userId')
@@ -201,13 +307,47 @@ router.post('/request/:targetId', async (c) => {
     return c.json({ error: 'Request already exists', status: existing.status }, 400)
   }
 
+  const [sender] = await db
+    .select({ id: users.id, name: users.name, username: users.username, avatarUrl: users.avatarUrl })
+    .from(users)
+    .where(eq(users.id, userId))
+    .limit(1)
+
   const friendshipId = crypto.randomUUID()
+  const now = Date.now()
+
   await db.insert(friendships).values({
     id: friendshipId,
     userA: userId,
     userB: targetId,
     status: 'pending',
-    createdAt: Date.now(),
+    createdAt: now,
+  })
+
+  // Notify target via activity log
+  await db.insert(activityLog).values({
+    id: crypto.randomUUID(),
+    userId: targetId,
+    type: 'friend_request',
+    payload: JSON.stringify({
+      from_user_id: userId,
+      from_username: sender?.username,
+      from_avatar: sender?.avatarUrl,
+      friendship_id: friendshipId,
+    }),
+    createdAt: now,
+  })
+
+  // Push to target's live WebSocket connection if active
+  await broadcastToUser(c.env, targetId, {
+    type: 'friend_request',
+    friendshipId,
+    from: {
+      id: sender?.id ?? userId,
+      name: sender?.name ?? '',
+      username: sender?.username ?? '',
+      avatarUrl: sender?.avatarUrl ?? null,
+    },
   })
 
   return c.json({ friendshipId, status: 'pending' })
