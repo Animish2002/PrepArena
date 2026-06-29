@@ -16,12 +16,14 @@ import { useTheme } from '../../context/ThemeContext'
 import { useProgressStore } from '../../store/progressStore'
 import { useFriendStore, type PendingRequest } from '../../store/friendStore'
 import { useFeedStore } from '../../store/feedStore'
+import { useChatStore } from '../../store/chatStore'
 import api from '../../lib/api'
 
 const PAGE_TITLES: Record<string, string> = {
   '/dashboard': 'Dashboard',
   '/problems': 'Problems',
   '/challenges': 'Challenges',
+  '/chat': 'Chat',
   '/friends': 'Friends',
   '/leaderboard': 'Leaderboard',
   '/battles': 'Battles',
@@ -42,6 +44,7 @@ export default function TopBar({ onMenuToggle }: TopBarProps) {
   const { pendingRequests, pendingCount, isLoaded, setPendingRequests, removePendingRequest } =
     useFriendStore()
   const addToast = useFeedStore((s) => s.addToast)
+  const { activeConversationId, conversations } = useChatStore()
 
   const [notifOpen, setNotifOpen] = useState(false)
   const [actioningId, setActioningId] = useState<string | null>(null)
@@ -91,7 +94,11 @@ export default function TopBar({ onMenuToggle }: TopBarProps) {
     }
   }
 
-  const title = PAGE_TITLES[pathname] ?? 'PrepArena'
+  const activeConv = conversations.find((c) => c.id === activeConversationId)
+  const title =
+    pathname === '/chat' && activeConv
+      ? activeConv.other_user.name
+      : (PAGE_TITLES[pathname] ?? 'PrepArena')
   const weeklyXp = stats?.xp.weekly ?? 0
   const totalXp = stats?.xp.total ?? 0
   const visibleRequests = pendingRequests.slice(0, 5)

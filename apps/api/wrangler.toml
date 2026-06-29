@@ -15,6 +15,7 @@
 #        wrangler secret put GOOGLE_CLIENT_SECRET
 #        wrangler secret put INTERNAL_SECRET
 #        wrangler secret put ADMIN_KEY
+#        wrangler secret put INTERNAL_KEY
 #
 # Deploy commands:
 #   API  : npm run deploy:api   (runs: wrangler deploy src/index.ts)
@@ -55,12 +56,17 @@ bucket_name = "preparena-storage"
 bindings = [
   { name = "USER_FEED",   class_name = "UserFeed" },
   { name = "BATTLE_ROOM", class_name = "BattleRoom" },
+  { name = "CHAT_ROOM",   class_name = "ChatRoom" },
 ]
 
 # new_sqlite_classes required for Cloudflare free plan
 [[migrations]]
 tag = "v1"
 new_sqlite_classes = ["UserFeed", "BattleRoom"]
+
+[[migrations]]
+tag = "v2"
+new_sqlite_classes = ["ChatRoom"]
 
 # ── Cron triggers ─────────────────────────────────────────────────────────────
 [triggers]

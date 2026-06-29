@@ -8,6 +8,17 @@ export interface User {
   updatedAt: string
 }
 
+export type QuestionType = 'coding' | 'sql' | 'theory' | 'mcq'
+
+export type Subject = 'dsa' | 'sql' | 'java' | 'oops' | 'spring-boot' | 'system-design'
+
+export interface McqContent {
+  question: string
+  options: string[]
+  correct_index: number
+  explanation: string
+}
+
 export interface Problem {
   id: string
   title: string
@@ -22,6 +33,20 @@ export interface Problem {
   }>
   constraints: string[]
   createdAt: string
+  question_type: QuestionType
+  subject: Subject
+  // theory: Markdown string; mcq: McqContent; coding/sql: null
+  content?: string | McqContent | null
+  content_source?: string | null
+}
+
+export interface McqAttempt {
+  id: string
+  userId: string
+  problemId: string
+  selectedIndex: number
+  isCorrect: boolean
+  attemptedAt: string
 }
 
 export interface UserProgress {

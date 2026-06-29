@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
-import { IconX, IconSword, IconFlame, IconBolt, IconCheck } from '@tabler/icons-react'
+import { IconX, IconSword, IconFlame, IconBolt, IconCheck, IconMessageCircle } from '@tabler/icons-react'
 import {
   BarChart,
   Bar,
@@ -231,14 +231,21 @@ export default function FriendProgressModal({ friend, onClose }: FriendProgressM
               </div>
 
               {/* Footer */}
-              <div className="p-4 border-t border-(--color-border)">
+              <div className="p-4 border-t border-(--color-border) flex gap-2">
+                <button
+                  onClick={() => { navigate(`/chat?with=${friend.id}`); onClose() }}
+                  className="flex items-center justify-center gap-2 flex-1 py-2.5 rounded-xl border border-(--color-border) text-(--color-text-primary) text-sm font-semibold hover:bg-(--color-bg) transition-colors"
+                >
+                  <IconMessageCircle size={16} />
+                  Chat
+                </button>
                 <button
                   onClick={handleChallenge}
                   disabled={challenging}
-                  className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl bg-(--color-accent) text-white text-sm font-semibold hover:opacity-90 transition-opacity disabled:opacity-50"
+                  className="flex items-center justify-center gap-2 flex-1 py-2.5 rounded-xl bg-(--color-accent) text-white text-sm font-semibold hover:opacity-90 transition-opacity disabled:opacity-50"
                 >
                   <IconSword size={16} />
-                  {challenging ? 'Creating challenge…' : `Challenge ${friend.name.split(' ')[0]} to Battle`}
+                  {challenging ? 'Creating…' : 'Battle'}
                 </button>
               </div>
             </motion.div>

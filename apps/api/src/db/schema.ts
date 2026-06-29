@@ -24,11 +24,19 @@ export const problems = sqliteTable('problems', {
   platform: text('platform'),
   platformLink: text('platform_link'),
   estimatedMinutes: integer('estimated_minutes'),
-  // 'striver-a2z'
+  // 'striver-a2z' | 'striver-sde' | 'blind-75' | 'neetcode-150' | 'leetcode-sql-50' | 'hackerrank-sql' | 'java-interview' | 'oops-concepts' | 'spring-interview'
   sheet: text('sheet'),
   problemNumber: integer('problem_number'),
   // JSON stringified string[]
   tags: text('tags'),
+  // 'coding' | 'sql' | 'theory' | 'mcq'
+  questionType: text('question_type').default('coding'),
+  // 'dsa' | 'sql' | 'java' | 'oops' | 'spring-boot' | 'system-design'
+  subject: text('subject').default('dsa'),
+  // theory: Markdown string; mcq: JSON {question, options, correct_index, explanation}; coding/sql: null
+  content: text('content'),
+  // e.g. 'baeldung' | 'official-docs' | 'custom' | 'leetcode'
+  contentSource: text('content_source'),
 })
 
 // ─── Friendships ─────────────────────────────────────────────────────────────
@@ -199,6 +207,45 @@ export const weeklyChallenges = sqliteTable('weekly_challenges', {
   createdAt: integer('created_at'),
 })
 
+// ─── Conversations ────────────────────────────────────────────────────────────
+
+export const conversations = sqliteTable('conversations', {
+  id: text('id').primaryKey(),
+  // user_a is always the lexicographically smaller user id
+  userA: text('user_a').notNull().references(() => users.id),
+  userB: text('user_b').notNull().references(() => users.id),
+  createdAt: integer('created_at'),
+  lastMessageAt: integer('last_message_at'),
+  lastMessagePreview: text('last_message_preview'),
+}, (table) => [
+  uniqueIndex('conversations_user_pair_idx').on(table.userA, table.userB),
+])
+
+// ─── Messages ─────────────────────────────────────────────────────────────────
+
+export const messages = sqliteTable('messages', {
+  id: text('id').primaryKey(),
+  conversationId: text('conversation_id').notNull().references(() => conversations.id),
+  senderId: text('sender_id').notNull().references(() => users.id),
+  content: text('content').notNull(),
+  // 'text' | 'problem_share' | 'challenge_invite' | 'battle_invite'
+  type: text('type').notNull().default('text'),
+  // JSON for rich message types
+  metadata: text('metadata'),
+  sentAt: integer('sent_at'),
+  readAt: integer('read_at'),
+})
+
+// ─── Message Reactions ────────────────────────────────────────────────────────
+
+export const messageReactions = sqliteTable('message_reactions', {
+  messageId: text('message_id').notNull().references(() => messages.id),
+  userId: text('user_id').notNull().references(() => users.id),
+  emoji: text('emoji').notNull(),
+}, (table) => [
+  primaryKey({ columns: [table.messageId, table.userId] }),
+])
+
 // ─── Challenge Completions ────────────────────────────────────────────────────
 
 export const challengeCompletions = sqliteTable('challenge_completions', {
@@ -216,3 +263,16 @@ export const challengeCompletions = sqliteTable('challenge_completions', {
 }, (table) => [
   uniqueIndex('challenge_completions_challenge_user_idx').on(table.challengeId, table.userId),
 ])
+
+// ─── MCQ Attempts ─────────────────────────────────────────────────────────────
+
+export const mcqAttempts = sqliteTable('mcq_attempts', {
+  id: text('id').primaryKey(),
+  userId: text('user_id').notNull().references(() => users.id),
+  problemId: text('problem_id').notNull().references(() => problems.id),
+  // which option the user picked (0-3)
+  selectedIndex: integer('selected_index').notNull(),
+  // 0 = wrong, 1 = correct
+  isCorrect: integer('is_correct').notNull(),
+  attemptedAt: integer('attempted_at'),
+})

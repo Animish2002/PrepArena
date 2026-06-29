@@ -7,9 +7,13 @@ import {
   IconBookmarkFilled,
   IconClock,
   IconCheck,
+  IconShare2,
+  IconSearch,
+  IconLoader2,
 } from '@tabler/icons-react'
 import { useProgressStore, type Problem } from '../../store/progressStore'
 import { useSolveTimer, formatElapsed } from '../../hooks/useSolveTimer'
+import { useFeedStore } from '../../store/feedStore'
 import api from '../../lib/api'
 
 interface ProblemDrawerProps {
@@ -35,6 +39,115 @@ const DIFF_BADGE: Record<string, string> = {
   hard: 'bg-red-500/15 text-red-500',
 }
 
+interface ShareFriend {
+  id: string
+  name: string
+  username: string
+  avatarUrl?: string | null
+}
+
+function ShareToChatModal({
+  problem,
+  onClose,
+}: {
+  problem: Problem
+  onClose: () => void
+}) {
+  const [friends, setFriends] = useState<ShareFriend[]>([])
+  const [loading, setLoading] = useState(true)
+  const [sharing, setSharing] = useState<string | null>(null)
+  const [q, setQ] = useState('')
+  const addToast = useFeedStore((s) => s.addToast)
+
+  useEffect(() => {
+    api
+      .get<{ friends: ShareFriend[] }>('/api/friends')
+      .then((r) => setFriends(r.data.friends))
+      .catch(() => {})
+      .finally(() => setLoading(false))
+  }, [])
+
+  const filtered = friends.filter(
+    (f) =>
+      f.name.toLowerCase().includes(q.toLowerCase()) ||
+      f.username.toLowerCase().includes(q.toLowerCase()),
+  )
+
+  async function share(friendId: string, friendName: string) {
+    setSharing(friendId)
+    try {
+      const convRes = await api.get<{ conversation_id: string }>(`/api/chat/with/${friendId}`)
+      await api.post(`/api/chat/conversations/${convRes.data.conversation_id}/share-problem`, {
+        problem_id: problem.id,
+      })
+      addToast(`Shared with ${friendName} ✓`, 'success')
+      onClose()
+    } catch {
+      addToast('Failed to share', 'info')
+    } finally {
+      setSharing(null)
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-60 flex items-center justify-center p-4 bg-black/50">
+      <div className="bg-(--color-surface) border border-(--color-border) rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-(--color-border)">
+          <p className="text-sm font-semibold text-(--color-text-primary)">Share to Chat</p>
+          <button onClick={onClose} className="text-(--color-text-secondary) hover:text-(--color-text-primary)">
+            <IconX size={16} />
+          </button>
+        </div>
+        <div className="px-3 py-2 border-b border-(--color-border)">
+          <div className="flex items-center gap-2 bg-(--color-bg) rounded-lg px-3 py-1.5 border border-(--color-border)">
+            <IconSearch size={13} className="text-(--color-text-secondary)" />
+            <input
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              placeholder="Search friends…"
+              autoFocus
+              className="flex-1 bg-transparent text-sm text-(--color-text-primary) placeholder:text-(--color-text-secondary) focus:outline-none"
+            />
+          </div>
+        </div>
+        <div className="max-h-60 overflow-y-auto p-2">
+          {loading ? (
+            <div className="flex justify-center py-6">
+              <IconLoader2 size={20} className="animate-spin text-(--color-text-secondary)" />
+            </div>
+          ) : filtered.length === 0 ? (
+            <p className="text-sm text-(--color-text-secondary) text-center py-6">No friends yet</p>
+          ) : (
+            filtered.map((f) => (
+              <button
+                key={f.id}
+                onClick={() => void share(f.id, f.name)}
+                disabled={sharing === f.id}
+                className="w-full flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-(--color-bg) transition-colors disabled:opacity-50"
+              >
+                {f.avatarUrl ? (
+                  <img src={f.avatarUrl} alt={f.name} className="w-8 h-8 rounded-full object-cover" />
+                ) : (
+                  <div className="w-8 h-8 rounded-full bg-(--color-accent)/15 flex items-center justify-center text-(--color-accent) text-sm font-bold">
+                    {f.name[0]?.toUpperCase()}
+                  </div>
+                )}
+                <div className="text-left flex-1">
+                  <p className="text-sm font-medium text-(--color-text-primary)">{f.name}</p>
+                  <p className="text-xs text-(--color-text-secondary)">@{f.username}</p>
+                </div>
+                {sharing === f.id && (
+                  <IconLoader2 size={14} className="animate-spin text-(--color-text-secondary)" />
+                )}
+              </button>
+            ))
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function ProblemDrawer({
   problem,
   onClose,
@@ -51,6 +164,7 @@ export default function ProblemDrawer({
   const [notes, setNotes] = useState('')
   const [notesSaved, setNotesSaved] = useState(false)
   const [submitting, setSubmitting] = useState(false)
+  const [showShare, setShowShare] = useState(false)
 
   const timerResultRef = useRef<{ started_at: number; duration_seconds: number } | null>(null)
   const notesTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
@@ -139,6 +253,7 @@ export default function ProblemDrawer({
   const progress = problem ? userProgress[problem.id] : null
 
   return (
+    <>
     <AnimatePresence>
       {problem && (
         <>
@@ -168,6 +283,14 @@ export default function ProblemDrawer({
                   {problem.title}
                 </h2>
                 <div className="flex items-center gap-1 shrink-0">
+                  <button
+                    onClick={() => setShowShare(true)}
+                    className="p-1.5 rounded-lg hover:bg-(--color-bg) transition-colors text-(--color-text-secondary)"
+                    aria-label="Share to Chat"
+                    title="Share to Chat"
+                  >
+                    <IconShare2 size={18} />
+                  </button>
                   <button
                     onClick={() => toggleBookmark(problem.id)}
                     className="p-1.5 rounded-lg hover:bg-(--color-bg) transition-colors text-(--color-text-secondary)"
@@ -375,5 +498,10 @@ export default function ProblemDrawer({
         </>
       )}
     </AnimatePresence>
+
+    {showShare && problem && (
+      <ShareToChatModal problem={problem} onClose={() => setShowShare(false)} />
+    )}
+    </>
   )
 }

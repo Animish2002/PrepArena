@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { useSearchParams, useNavigate } from 'react-router-dom'
 import {
   IconUserPlus,
   IconUsers,
@@ -12,6 +12,7 @@ import {
   IconLoader2,
   IconUserCheck,
   IconX,
+  IconMessageCircle,
 } from '@tabler/icons-react'
 import api from '../lib/api'
 import FriendProgressModal from '../components/friends/FriendProgressModal'
@@ -503,6 +504,7 @@ function FriendCard({
   friend: Friend
   onViewProgress: () => void
 }) {
+  const navigate = useNavigate()
   return (
     <div className="bg-(--color-surface) border border-(--color-border) rounded-2xl p-4 flex flex-col gap-4 hover:border-(--color-accent)/40 transition-colors">
       <div className="flex items-center gap-3">
@@ -529,12 +531,21 @@ function FriendCard({
           value={String(friend.problemsSolvedThisWeek)}
         />
       </div>
-      <button
-        onClick={onViewProgress}
-        className="w-full py-2 rounded-xl text-xs font-semibold border border-(--color-border) text-(--color-text-secondary) hover:border-(--color-accent)/50 hover:text-(--color-accent) transition-colors"
-      >
-        View Progress
-      </button>
+      <div className="flex gap-2">
+        <button
+          onClick={() => navigate(`/chat?with=${friend.id}`)}
+          className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-semibold border border-(--color-border) text-(--color-text-secondary) hover:border-(--color-accent)/50 hover:text-(--color-accent) transition-colors"
+        >
+          <IconMessageCircle size={13} />
+          Chat
+        </button>
+        <button
+          onClick={onViewProgress}
+          className="flex-1 py-2 rounded-xl text-xs font-semibold border border-(--color-border) text-(--color-text-secondary) hover:border-(--color-accent)/50 hover:text-(--color-accent) transition-colors"
+        >
+          Progress
+        </button>
+      </div>
     </div>
   )
 }

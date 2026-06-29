@@ -22,6 +22,20 @@
       "when": 1782747909513,
       "tag": "0002_amusing_gorilla_man",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1782748974043,
+      "tag": "0003_futuristic_sabra",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1782750000640,
+      "tag": "0004_flawless_apocalypse",
+      "breakpoints": true
     }
   ]
 }

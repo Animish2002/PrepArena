@@ -1,4 +1,5 @@
 import { NavLink } from 'react-router-dom'
+import { motion } from 'motion/react'
 import {
   IconLayoutDashboard,
   IconCode,
@@ -13,8 +14,10 @@ import {
   IconChevronRight,
   IconX,
   IconFlame,
+  IconMessageCircle,
 } from '@tabler/icons-react'
 import { useAuthStore, type User } from '../../store/authStore'
+import { useChatStore } from '../../store/chatStore'
 
 function useChallengeNewDot() {
   const STORAGE_KEY = 'preparena_last_seen_challenge'
@@ -35,6 +38,7 @@ const NAV_ITEMS = [
   { label: 'Dashboard',   to: '/dashboard',  icon: IconLayoutDashboard },
   { label: 'Problems',    to: '/problems',   icon: IconCode },
   { label: 'Challenges',  to: '/challenges', icon: IconFlame, newDot: true },
+  { label: 'Chat',        to: '/chat',       icon: IconMessageCircle, badge: true },
   { label: 'Friends',     to: '/friends',    icon: IconUsers },
   { label: 'Leaderboard', to: '/leaderboard',icon: IconTrophy },
   { label: 'Battles',     to: '/battles',    icon: IconSwords },
@@ -83,6 +87,7 @@ function NavContent({
 }) {
   const { user, logout } = useAuthStore()
   const showChallengeDot = useChallengeNewDot()
+  const totalUnread = useChatStore((s) => s.totalUnread)
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
@@ -107,7 +112,7 @@ function NavContent({
 
       {/* Nav */}
       <nav className="flex-1 px-2 py-3 space-y-0.5 overflow-y-auto">
-        {NAV_ITEMS.map(({ label, to, icon: Icon, newDot }) => (
+        {NAV_ITEMS.map(({ label, to, icon: Icon, newDot, badge }) => (
           <NavLink
             key={to}
             to={to}
@@ -128,12 +133,27 @@ function NavContent({
               {newDot && showChallengeDot && (
                 <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-orange-500 animate-pulse" />
               )}
+              {badge && totalUnread > 0 && (
+                <span className="absolute -top-1 -right-1 min-w-4 h-4 px-0.5 flex items-center justify-center bg-(--color-accent) text-white text-[9px] font-bold rounded-full">
+                  {totalUnread > 9 ? '9+' : totalUnread}
+                </span>
+              )}
             </span>
             {!collapsed && <span className="flex-1">{label}</span>}
             {!collapsed && newDot && showChallengeDot && (
               <span className="text-[10px] font-bold text-orange-500 bg-orange-500/10 px-1.5 py-0.5 rounded-full">
                 NEW
               </span>
+            )}
+            {!collapsed && badge && totalUnread > 0 && (
+              <motion.span
+                key={totalUnread}
+                initial={{ scale: 0.7 }}
+                animate={{ scale: 1 }}
+                className="text-[10px] font-bold text-white bg-(--color-accent) px-1.5 py-0.5 rounded-full"
+              >
+                {totalUnread > 9 ? '9+' : totalUnread}
+              </motion.span>
             )}
           </NavLink>
         ))}

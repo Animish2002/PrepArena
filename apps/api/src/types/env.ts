@@ -10,8 +10,10 @@ export interface Env {
   WORKER_URL: string
   INTERNAL_SECRET: string
   ADMIN_KEY: string
+  INTERNAL_KEY: string
   USER_FEED: DurableObjectNamespace
   BATTLE_ROOM: DurableObjectNamespace
+  CHAT_ROOM: DurableObjectNamespace
 }
 
 export interface Variables {

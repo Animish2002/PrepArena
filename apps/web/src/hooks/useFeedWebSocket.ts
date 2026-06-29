@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useRef } from 'react'
+import { useLocation } from 'react-router-dom'
 import { useFeedStore, type FeedEvent } from '../store/feedStore'
 import { useFriendStore } from '../store/friendStore'
 import { useChallengeStore } from '../store/challengeStore'
+import { useChatStore } from '../store/chatStore'
 import api from '../lib/api'
 
 const BACKOFF = [2000, 4000, 8000, 16_000, 30_000]
@@ -31,11 +33,18 @@ function toastMessage(event: FeedEvent): { msg: string; type: 'success' | 'info'
 }
 
 export function useFeedWebSocket() {
+  const { pathname } = useLocation()
   const pushEvent = useFeedStore((s) => s.pushEvent)
   const addToast = useFeedStore((s) => s.addToast)
   const addPendingRequest = useFriendStore((s) => s.addPendingRequest)
   const removePendingRequest = useFriendStore((s) => s.removePendingRequest)
   const updateLeaderboardEntry = useChallengeStore((s) => s.updateLeaderboardEntry)
+  const { activeConversationId, incrementUnread, fetchConversations } = useChatStore()
+
+  const pathnameRef = useRef(pathname)
+  pathnameRef.current = pathname
+  const activeConvRef = useRef(activeConversationId)
+  activeConvRef.current = activeConversationId
 
   const wsRef = useRef<WebSocket | null>(null)
   const attemptRef = useRef(0)
@@ -133,6 +142,24 @@ export function useFeedWebSocket() {
         return
       }
 
+      // ── New chat message ──────────────────────────────────────────────────
+      if (data.type === 'new_message') {
+        const ev = data as {
+          from_user_id: string
+          from_username: string
+          preview: string
+          conversation_id: string
+        }
+        const isOnChat = pathnameRef.current === '/chat'
+        const isActiveConv = activeConvRef.current === ev.conversation_id
+        if (!isOnChat || !isActiveConv) {
+          incrementUnread(ev.conversation_id)
+          addToast(`💬 ${ev.from_username}: ${ev.preview}`, 'info')
+          void fetchConversations()
+        }
+        return
+      }
+
       // ── Challenge progress (silent leaderboard update) ───────────────────
       if (data.type === 'challenge_progress') {
         const ev = data as {
@@ -167,7 +194,7 @@ export function useFeedWebSocket() {
     }
 
     ws.onerror = () => ws.close()
-  }, [pushEvent, addToast, addPendingRequest, removePendingRequest, updateLeaderboardEntry])
+  }, [pushEvent, addToast, addPendingRequest, removePendingRequest, updateLeaderboardEntry, incrementUnread, fetchConversations])
 
   useEffect(() => {
     connect()
