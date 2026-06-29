@@ -7,7 +7,6 @@ const api = axios.create({
 
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('preParena_token')
-  console.log(`[api] ${config.method?.toUpperCase()} ${config.url} — token in storage: ${!!token}`)
   if (token) config.headers.Authorization = `Bearer ${token}`
   return config
 })

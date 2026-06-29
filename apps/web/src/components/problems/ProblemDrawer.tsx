@@ -17,6 +17,7 @@ interface ProblemDrawerProps {
   onClose: () => void
   revisionId?: string
   onRevisionComplete?: (revisionId: string) => void
+  onSolve?: (problemId: string, xpGained: number) => void
 }
 
 type Phase = 'idle' | 'timing' | 'confidence' | 'success'
@@ -39,6 +40,7 @@ export default function ProblemDrawer({
   onClose,
   revisionId,
   onRevisionComplete,
+  onSolve,
 }: ProblemDrawerProps) {
   const { markSolved, markAttempted, bookmarks, toggleBookmark, userProgress } = useProgressStore()
   const { startTimer, stopTimer, resetTimer, elapsed, isRunning } = useSolveTimer()
@@ -110,6 +112,7 @@ export default function ProblemDrawer({
         await api.post(`/api/progress/revisions/${revisionId}/complete`).catch(() => {})
         onRevisionComplete?.(revisionId)
       }
+      onSolve?.(problem.id, xp_gained)
       setXpGained(xp_gained)
       setPhase('success')
       setTimeout(onClose, 2000)

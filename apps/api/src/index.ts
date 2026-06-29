@@ -1,6 +1,7 @@
 import { Hono } from 'hono'
 import { cors } from 'hono/cors'
 import type { AppEnv } from './types/env'
+import type { Env } from './types/env'
 import auth from './routes/auth'
 import problemsRouter from './routes/problems'
 import progressRouter from './routes/progress'
@@ -10,6 +11,7 @@ import battlesRouter, { internalBattlesRouter } from './routes/battles'
 import feedRouter from './routes/feed'
 import profileRouter from './routes/profile'
 import groupsRouter from './routes/groups'
+import challengesRouter, { autoCreateWeeklyChallenge } from './routes/challenges'
 
 // Durable Object classes must be exported from the main entry point
 export { UserFeed } from './durable/UserFeed'
@@ -39,6 +41,15 @@ app.route('/api/battles', battlesRouter)
 app.route('/api/feed', feedRouter)
 app.route('/api/profile', profileRouter)
 app.route('/api/groups', groupsRouter)
+app.route('/api/challenges', challengesRouter)
 app.route('/internal/battles', internalBattlesRouter)
 
-export default app
+// ── Scheduled handler — runs every Monday 00:00 UTC (cron: "0 0 * * 1") ──────
+
+export default {
+  fetch: app.fetch.bind(app),
+
+  async scheduled(_event: ScheduledEvent, env: Env, ctx: ExecutionContext) {
+    ctx.waitUntil(autoCreateWeeklyChallenge(env))
+  },
+}

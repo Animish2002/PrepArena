@@ -12,6 +12,7 @@ import BattleArena from './pages/BattleArena'
 import RevisionsPage from './pages/Revisions'
 import ProfilePage from './pages/Profile'
 import GroupsPage from './pages/Groups'
+import ChallengePage from './pages/ChallengePage'
 import JoinPage from './pages/Join'
 import AuthCallback from './pages/AuthCallback'
 import { useAuthStore } from './store/authStore'
@@ -55,6 +56,7 @@ export default function App() {
             <Route path="/revisions" element={<RevisionsPage />} />
             <Route path="/profile" element={<ProfilePage />} />
             <Route path="/groups" element={<GroupsPage />} />
+            <Route path="/challenges" element={<ChallengePage />} />
           </Route>
 
           <Route path="*" element={<Navigate to="/dashboard" replace />} />

@@ -182,3 +182,37 @@ export const userXp = sqliteTable('user_xp', {
   weekStart: integer('week_start'),
   monthStart: integer('month_start'),
 })
+
+// ─── Weekly Challenges ────────────────────────────────────────────────────────
+
+export const weeklyChallenges = sqliteTable('weekly_challenges', {
+  id: text('id').primaryKey(),
+  weekStart: integer('week_start').notNull(),
+  title: text('title').notNull(),
+  description: text('description').notNull(),
+  // 'topic_blitz' | 'speed_run' | 'accuracy' | 'mixed'
+  type: text('type').notNull(),
+  // JSON array of 7-10 problem ids
+  problemIds: text('problem_ids').notNull(),
+  xpReward: integer('xp_reward').notNull().default(200),
+  badgeName: text('badge_name').notNull(),
+  createdAt: integer('created_at'),
+})
+
+// ─── Challenge Completions ────────────────────────────────────────────────────
+
+export const challengeCompletions = sqliteTable('challenge_completions', {
+  id: text('id').primaryKey(),
+  challengeId: text('challenge_id').notNull().references(() => weeklyChallenges.id),
+  userId: text('user_id').notNull().references(() => users.id),
+  problemsSolved: integer('problems_solved').notNull().default(0),
+  totalProblems: integer('total_problems').notNull(),
+  // 1 when all problems solved
+  completed: integer('completed').notNull().default(0),
+  // sum of solve durations for challenge problems
+  totalTimeSeconds: integer('total_time_seconds').notNull().default(0),
+  completedAt: integer('completed_at'),
+  xpAwarded: integer('xp_awarded').notNull().default(0),
+}, (table) => [
+  uniqueIndex('challenge_completions_challenge_user_idx').on(table.challengeId, table.userId),
+])

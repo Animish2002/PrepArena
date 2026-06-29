@@ -12,6 +12,7 @@ import {
 } from '../db/schema'
 import { authMiddleware } from '../middleware/auth'
 import type { AppEnv } from '../types/env'
+import { maybeUpdateChallengeProgress } from './challenges'
 
 const router = new Hono<AppEnv>()
 
@@ -161,7 +162,17 @@ router.post('/:problemId/solve', async (c) => {
 
   const [xpRow] = await db.select({ totalXp: userXp.totalXp }).from(userXp).where(eq(userXp.userId, userId)).limit(1)
 
-  return c.json({ success: true, xp_gained: xpGained, total_xp: xpRow?.totalXp ?? xpGained })
+  // Side-effect: update weekly challenge progress if this problem is in the active challenge
+  const challengeUpdate = await maybeUpdateChallengeProgress(
+    db, c.env, userId, problemId, body.duration_seconds,
+  ).catch(() => null)
+
+  return c.json({
+    success: true,
+    xp_gained: xpGained,
+    total_xp: xpRow?.totalXp ?? xpGained,
+    challenge: challengeUpdate,
+  })
 })
 
 // ─── POST /progress/:problemId/attempt ───────────────────────────────────────

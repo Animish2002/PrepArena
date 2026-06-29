@@ -16,7 +16,8 @@ export default defineConfig({
         theme_color: '#0f0f0f',
         background_color: '#0f0f0f',
         display: 'standalone',
-        start_url: '/dashboard',
+        start_url: 'https://prep-arena.animishchopade.in/dashboard',
+        scope: 'https://prep-arena.animishchopade.in/',
         icons: [
           {
             src: '/assets/PrepArena_favicon.png',

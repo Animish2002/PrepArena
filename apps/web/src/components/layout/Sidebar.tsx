@@ -12,18 +12,35 @@ import {
   IconChevronLeft,
   IconChevronRight,
   IconX,
+  IconFlame,
 } from '@tabler/icons-react'
 import { useAuthStore, type User } from '../../store/authStore'
 
+function useChallengeNewDot() {
+  const STORAGE_KEY = 'preparena_last_seen_challenge'
+  const today = new Date()
+  // Show dot on Mondays (day 1) — new challenge just went live
+  const isMonday = today.getDay() === 1
+  const lastSeen = localStorage.getItem(STORAGE_KEY)
+  const thisMonday = (() => {
+    const d = new Date(today)
+    d.setHours(0, 0, 0, 0)
+    d.setDate(d.getDate() - ((d.getDay() + 6) % 7))
+    return d.toISOString().slice(0, 10)
+  })()
+  return isMonday && lastSeen !== thisMonday
+}
+
 const NAV_ITEMS = [
-  { label: 'Dashboard', to: '/dashboard', icon: IconLayoutDashboard },
-  { label: 'Problems', to: '/problems', icon: IconCode },
-  { label: 'Friends', to: '/friends', icon: IconUsers },
-  { label: 'Leaderboard', to: '/leaderboard', icon: IconTrophy },
-  { label: 'Battles', to: '/battles', icon: IconSwords },
-  { label: 'Revisions', to: '/revisions', icon: IconCalendar },
-  { label: 'Groups', to: '/groups', icon: IconUsersGroup },
-  { label: 'Profile', to: '/profile', icon: IconUser },
+  { label: 'Dashboard',   to: '/dashboard',  icon: IconLayoutDashboard },
+  { label: 'Problems',    to: '/problems',   icon: IconCode },
+  { label: 'Challenges',  to: '/challenges', icon: IconFlame, newDot: true },
+  { label: 'Friends',     to: '/friends',    icon: IconUsers },
+  { label: 'Leaderboard', to: '/leaderboard',icon: IconTrophy },
+  { label: 'Battles',     to: '/battles',    icon: IconSwords },
+  { label: 'Revisions',   to: '/revisions',  icon: IconCalendar },
+  { label: 'Groups',      to: '/groups',     icon: IconUsersGroup },
+  { label: 'Profile',     to: '/profile',    icon: IconUser },
 ]
 
 interface SidebarProps {
@@ -65,6 +82,7 @@ function NavContent({
   onLinkClick: () => void
 }) {
   const { user, logout } = useAuthStore()
+  const showChallengeDot = useChallengeNewDot()
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
@@ -89,7 +107,7 @@ function NavContent({
 
       {/* Nav */}
       <nav className="flex-1 px-2 py-3 space-y-0.5 overflow-y-auto">
-        {NAV_ITEMS.map(({ label, to, icon: Icon }) => (
+        {NAV_ITEMS.map(({ label, to, icon: Icon, newDot }) => (
           <NavLink
             key={to}
             to={to}
@@ -97,7 +115,7 @@ function NavContent({
             title={collapsed ? label : undefined}
             className={({ isActive }) =>
               [
-                'flex items-center rounded-lg px-2.5 py-2 text-sm font-medium transition-colors',
+                'relative flex items-center rounded-lg px-2.5 py-2 text-sm font-medium transition-colors',
                 collapsed ? 'justify-center' : 'gap-3',
                 isActive
                   ? 'bg-(--color-accent)/10 text-(--color-accent)'
@@ -105,8 +123,18 @@ function NavContent({
               ].join(' ')
             }
           >
-            <Icon size={20} strokeWidth={1.75} />
-            {!collapsed && <span>{label}</span>}
+            <span className="relative shrink-0">
+              <Icon size={20} strokeWidth={1.75} />
+              {newDot && showChallengeDot && (
+                <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-orange-500 animate-pulse" />
+              )}
+            </span>
+            {!collapsed && <span className="flex-1">{label}</span>}
+            {!collapsed && newDot && showChallengeDot && (
+              <span className="text-[10px] font-bold text-orange-500 bg-orange-500/10 px-1.5 py-0.5 rounded-full">
+                NEW
+              </span>
+            )}
           </NavLink>
         ))}
       </nav>

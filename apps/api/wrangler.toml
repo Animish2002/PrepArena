@@ -1,3 +1,35 @@
+# ── Deployment checklist ──────────────────────────────────────────────────────
+# Production domain : https://prep-arena.animishchopade.in
+# API worker        : https://preparena-api.animishchopade123.workers.dev
+#
+# Before redeploying, make sure these Cloudflare settings are in place:
+#   1. Google Cloud Console → Authorised redirect URIs includes:
+#        https://preparena-api.animishchopade123.workers.dev/auth/google/callback
+#   2. Google Cloud Console → Authorised JavaScript origins includes:
+#        https://prep-arena.animishchopade.in
+#   3. Cloudflare Pages → preparena-web → Settings → Custom domains:
+#        prep-arena.animishchopade.in   (with CNAME pointing to pages.dev)
+#   4. Secrets pushed via wrangler CLI (never commit these):
+#        wrangler secret put JWT_SECRET
+#        wrangler secret put GOOGLE_CLIENT_ID
+#        wrangler secret put GOOGLE_CLIENT_SECRET
+#        wrangler secret put INTERNAL_SECRET
+#        wrangler secret put ADMIN_KEY
+#
+# Deploy commands:
+#   API  : npm run deploy:api   (runs: wrangler deploy src/index.ts)
+#   Web  : npm run deploy:web   (runs: vite build && wrangler pages deploy)
+#
+# Local dev — create apps/api/.dev.vars (gitignored):
+#   FRONTEND_URL=http://localhost:5173
+#   JWT_SECRET=any-random-string
+#   GOOGLE_CLIENT_ID=your-google-client-id
+#   GOOGLE_CLIENT_SECRET=your-google-client-secret
+#   GOOGLE_REDIRECT_URI=http://localhost:8787/auth/google/callback
+#   INTERNAL_SECRET=any-random-string
+#   WORKER_URL=http://localhost:8787
+# ─────────────────────────────────────────────────────────────────────────────
+
 name = "preparena-api"
 main = "src/index.ts"
 compatibility_date = "2025-01-01"
@@ -30,21 +62,18 @@ bindings = [
 tag = "v1"
 new_sqlite_classes = ["UserFeed", "BattleRoom"]
 
+# ── Cron triggers ─────────────────────────────────────────────────────────────
+[triggers]
+crons = ["0 0 * * 1"]  # every Monday 00:00 UTC — auto-generate weekly challenge
+
 # ── Vars (production values — overridden by .dev.vars for local dev) ──────────
 [vars]
-FRONTEND_URL        = "https://preparena-web.pages.dev"
+FRONTEND_URL        = "https://prep-arena.animishchopade.in"
 GOOGLE_REDIRECT_URI = "https://preparena-api.animishchopade123.workers.dev/auth/google/callback"
 WORKER_URL          = "https://preparena-api.animishchopade123.workers.dev"
 
-# ── Secrets — push via CLI, never hardcode here ───────────────────────────────
-# Run once:
-#   wrangler secret put JWT_SECRET
-#   wrangler secret put GOOGLE_CLIENT_ID
-#   wrangler secret put GOOGLE_CLIENT_SECRET
-#   wrangler secret put INTERNAL_SECRET
-#
-# For local dev create apps/api/.dev.vars (gitignored) with:
-#   JWT_SECRET=any-random-string
-#   GOOGLE_CLIENT_ID=your-google-client-id
-#   GOOGLE_CLIENT_SECRET=your-google-client-secret
-#   INTERNAL_SECRET=any-random-string
+# ── Named production environment (deploy with: wrangler deploy --env production)
+[env.production.vars]
+FRONTEND_URL        = "https://prep-arena.animishchopade.in"
+GOOGLE_REDIRECT_URI = "https://preparena-api.animishchopade123.workers.dev/auth/google/callback"
+WORKER_URL          = "https://preparena-api.animishchopade123.workers.dev"

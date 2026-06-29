@@ -54,8 +54,9 @@ async function signJwt(secret: string, payload: { sub: string; email: string; us
 function setSessionCookie(c: Parameters<typeof setCookie>[0], token: string) {
   setCookie(c, 'preParena_session', token, {
     httpOnly: true,
-    sameSite: 'None',
+    sameSite: 'Lax',
     secure: true,
+    domain: '.animishchopade.in',
     path: '/',
     maxAge: 60 * 60 * 24 * 7, // 7 days
   })
@@ -209,8 +210,9 @@ auth.get('/me', authMiddleware, async (c) => {
 auth.post('/logout', (c) => {
   deleteCookie(c, 'preParena_session', {
     httpOnly: true,
-    sameSite: 'None',
+    sameSite: 'Lax',
     secure: true,
+    domain: '.animishchopade.in',
     path: '/',
   })
   return c.json({ success: true })

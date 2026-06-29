@@ -21,6 +21,7 @@ import api from '../../lib/api'
 const PAGE_TITLES: Record<string, string> = {
   '/dashboard': 'Dashboard',
   '/problems': 'Problems',
+  '/challenges': 'Challenges',
   '/friends': 'Friends',
   '/leaderboard': 'Leaderboard',
   '/battles': 'Battles',

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef } from 'react'
 import { useFeedStore, type FeedEvent } from '../store/feedStore'
 import { useFriendStore } from '../store/friendStore'
+import { useChallengeStore } from '../store/challengeStore'
 import api from '../lib/api'
 
 const BACKOFF = [2000, 4000, 8000, 16_000, 30_000]
@@ -34,6 +35,7 @@ export function useFeedWebSocket() {
   const addToast = useFeedStore((s) => s.addToast)
   const addPendingRequest = useFriendStore((s) => s.addPendingRequest)
   const removePendingRequest = useFriendStore((s) => s.removePendingRequest)
+  const updateLeaderboardEntry = useChallengeStore((s) => s.updateLeaderboardEntry)
 
   const wsRef = useRef<WebSocket | null>(null)
   const attemptRef = useRef(0)
@@ -116,6 +118,36 @@ export function useFeedWebSocket() {
         return
       }
 
+      // ── Challenge completed ───────────────────────────────────────────────
+      if (data.type === 'challenge_completed') {
+        const ev = data as {
+          name: string
+          username: string
+          challengeTitle: string
+          badgeName: string
+        }
+        addToast(
+          `🏆 ${ev.name} (@${ev.username}) completed "${ev.challengeTitle}" and earned ${ev.badgeName}!`,
+          'success',
+        )
+        return
+      }
+
+      // ── Challenge progress (silent leaderboard update) ───────────────────
+      if (data.type === 'challenge_progress') {
+        const ev = data as {
+          userId: string
+          name: string
+          username: string
+          avatarUrl?: string | null
+          problemsSolved: number
+          totalProblems: number
+          totalTimeSeconds: number
+        }
+        updateLeaderboardEntry(ev)
+        return
+      }
+
       // ── Regular feed event ────────────────────────────────────────────────
       if (!data.id) return
 
@@ -135,7 +167,7 @@ export function useFeedWebSocket() {
     }
 
     ws.onerror = () => ws.close()
-  }, [pushEvent, addToast, addPendingRequest, removePendingRequest])
+  }, [pushEvent, addToast, addPendingRequest, removePendingRequest, updateLeaderboardEntry])
 
   useEffect(() => {
     connect()

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { IconCheck, IconFlame, IconBolt, IconCalendar, IconUsers, IconX } from '@tabler/icons-react'
+import { IconCheck, IconFlame, IconBolt, IconCalendar, IconUsers, IconX, IconMedal } from '@tabler/icons-react'
 import { motion, AnimatePresence } from 'motion/react'
 import { useProgressStore } from '../store/progressStore'
 import { useFriendStore } from '../store/friendStore'
@@ -100,6 +100,16 @@ function MissionTask({ label, done }: { label: string; done: boolean }) {
   )
 }
 
+interface ActiveChallenge {
+  title: string
+  problemsSolved: number
+  totalProblems: number
+  completed: boolean
+  badgeName: string
+  weekEnd: number
+  xpReward: number
+}
+
 export default function DashboardPage() {
   const navigate = useNavigate()
   const { stats, fetchStats } = useProgressStore()
@@ -111,6 +121,7 @@ export default function DashboardPage() {
   const [activeDates, setActiveDates] = useState<string[]>([])
   const [mission, setMission] = useState<DailyMission | null>(null)
   const [streak, setStreak] = useState(0)
+  const [activeChallenge, setActiveChallenge] = useState<ActiveChallenge | null>(null)
 
   useEffect(() => {
     fetchStats()
@@ -134,6 +145,25 @@ export default function DashboardPage() {
       .get<DailyMission>('/api/progress/daily-mission')
       .then((r) => setMission(r.data))
       .catch(() => setMission({ easy: false, medium: false, revision: false, allDone: false, xpReward: 150 }))
+
+    api
+      .get<{
+        challenge: { title: string; weekEnd: number; xpReward: number; badgeName: string; totalProblems: number } | null
+        user_completion: { problemsSolved: number; completed: boolean } | null
+      }>('/api/challenges/current')
+      .then((r) => {
+        if (!r.data.challenge) return
+        setActiveChallenge({
+          title: r.data.challenge.title,
+          weekEnd: r.data.challenge.weekEnd,
+          xpReward: r.data.challenge.xpReward,
+          badgeName: r.data.challenge.badgeName,
+          totalProblems: r.data.challenge.totalProblems,
+          problemsSolved: r.data.user_completion?.problemsSolved ?? 0,
+          completed: r.data.user_completion?.completed ?? false,
+        })
+      })
+      .catch(() => {})
   }, [fetchStats])
 
   const totalSolved = stats?.solvedByDifficulty.reduce((s, d) => s + d.solved, 0) ?? 0
@@ -188,6 +218,7 @@ export default function DashboardPage() {
 
       {/* ── Stat cards ────────────────────────────────────────────────────────── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Challenge widget — replaces 4th stat card when a challenge is active */}
         <StatCard
           label="Problems Solved"
           value={`${totalSolved} / ${totalProblems}`}
@@ -209,13 +240,45 @@ export default function DashboardPage() {
           icon={<IconBolt size={18} strokeWidth={2} />}
           color="amber"
         />
-        <StatCard
-          label="Revisions Due"
-          value={revisionCount}
-          sub="due today"
-          icon={<IconCalendar size={18} strokeWidth={2} />}
-          color="violet"
-        />
+        {activeChallenge ? (
+          <button
+            onClick={() => navigate('/challenges')}
+            className={`bg-(--color-surface) border rounded-xl p-4 text-left hover:scale-[1.02] transition-transform col-span-1 ${
+              activeChallenge.completed
+                ? 'border-amber-400/50 shadow-[0_0_0_1px_rgba(251,191,36,0.2)]'
+                : 'border-(--color-border)'
+            }`}
+          >
+            <div
+              className={`w-8 h-8 rounded-lg flex items-center justify-center mb-3 ${
+                activeChallenge.completed ? 'bg-amber-500/10 text-amber-500' : 'bg-(--color-accent)/10 text-(--color-accent)'
+              }`}
+            >
+              {activeChallenge.completed ? <IconMedal size={18} strokeWidth={2} /> : <IconFlame size={18} strokeWidth={2} />}
+            </div>
+            <p className="text-lg font-bold text-(--color-text-primary) tabular-nums">
+              {activeChallenge.problemsSolved} / {activeChallenge.totalProblems}
+            </p>
+            <p className="text-xs font-medium text-(--color-text-secondary) mt-0.5 truncate">
+              {activeChallenge.title}
+            </p>
+            {activeChallenge.completed ? (
+              <p className="text-xs text-amber-500 mt-1 font-semibold">{activeChallenge.badgeName} earned!</p>
+            ) : (
+              <p className="text-xs text-(--color-text-secondary) mt-1 opacity-70">
+                View Challenge →
+              </p>
+            )}
+          </button>
+        ) : (
+          <StatCard
+            label="Revisions Due"
+            value={revisionCount}
+            sub="due today"
+            icon={<IconCalendar size={18} strokeWidth={2} />}
+            color="violet"
+          />
+        )}
       </div>
 
       {/* ── Daily Mission + Streak calendar ───────────────────────────────────── */}
