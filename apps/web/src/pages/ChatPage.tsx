@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState } from 'react'
-import { useSearchParams, useNavigate } from 'react-router-dom'
-import { AnimatePresence, motion } from 'motion/react'
+import { useEffect, useRef, useState } from "react";
+import { useSearchParams, useNavigate } from "react-router-dom";
+import { AnimatePresence, motion } from "motion/react";
 import {
   IconArrowLeft,
   IconMessageCircle,
@@ -14,30 +14,38 @@ import {
   IconChecks,
   IconExternalLink,
   IconLoader2,
-} from '@tabler/icons-react'
-import { useAuthStore } from '../store/authStore'
-import { useChatStore, type Conversation, type ChatMessage } from '../store/chatStore'
-import { useChatWebSocket } from '../hooks/useChatWebSocket'
-import api from '../lib/api'
+} from "@tabler/icons-react";
+import { useAuthStore } from "../store/authStore";
+import {
+  useChatStore,
+  type Conversation,
+  type ChatMessage,
+} from "../store/chatStore";
+import { useChatWebSocket } from "../hooks/useChatWebSocket";
+import api from "../lib/api";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function fmtTime(ts: number) {
-  const d = new Date(ts)
-  return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+  const d = new Date(ts);
+  return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 }
 
 function fmtDateLabel(ts: number) {
-  const d = new Date(ts)
-  const now = new Date()
-  const diff = Math.floor((now.getTime() - d.getTime()) / 86400000)
-  if (diff === 0) return 'Today'
-  if (diff === 1) return 'Yesterday'
-  return d.toLocaleDateString([], { weekday: 'short', day: 'numeric', month: 'short' })
+  const d = new Date(ts);
+  const now = new Date();
+  const diff = Math.floor((now.getTime() - d.getTime()) / 86400000);
+  if (diff === 0) return "Today";
+  if (diff === 1) return "Yesterday";
+  return d.toLocaleDateString([], {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+  });
 }
 
 function getDateKey(ts: number) {
-  return new Date(ts).toISOString().slice(0, 10)
+  return new Date(ts).toISOString().slice(0, 10);
 }
 
 function Avatar({
@@ -46,10 +54,10 @@ function Avatar({
   size = 36,
   online,
 }: {
-  name: string
-  avatarUrl?: string | null
-  size?: number
-  online?: boolean
+  name: string;
+  avatarUrl?: string | null;
+  size?: number;
+  online?: boolean;
 }) {
   return (
     <div className="relative shrink-0" style={{ width: size, height: size }}>
@@ -64,26 +72,26 @@ function Avatar({
           style={{ fontSize: size * 0.38 }}
           className="w-full h-full rounded-full bg-(--color-accent)/15 flex items-center justify-center text-(--color-accent) font-bold select-none"
         >
-          {name?.[0]?.toUpperCase() ?? '?'}
+          {name?.[0]?.toUpperCase() ?? "?"}
         </div>
       )}
       {online && (
         <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-emerald-500 ring-2 ring-(--color-surface)" />
       )}
     </div>
-  )
+  );
 }
 
 // ── Special message cards ─────────────────────────────────────────────────────
 
-function ProblemShareCard({ meta }: { meta: ChatMessage['metadata'] }) {
-  if (!meta) return null
+function ProblemShareCard({ meta }: { meta: ChatMessage["metadata"] }) {
+  if (!meta) return null;
   const diffColor =
-    meta.difficulty === 'easy'
-      ? 'text-emerald-500'
-      : meta.difficulty === 'hard'
-        ? 'text-red-500'
-        : 'text-amber-500'
+    meta.difficulty === "easy"
+      ? "text-emerald-500"
+      : meta.difficulty === "hard"
+        ? "text-red-500"
+        : "text-amber-500";
   return (
     <div className="mt-1 rounded-xl border border-(--color-border) bg-(--color-bg) p-3 min-w-48 max-w-64">
       <p className="text-xs font-semibold text-(--color-text-secondary) mb-1 flex items-center gap-1">
@@ -106,18 +114,22 @@ function ProblemShareCard({ meta }: { meta: ChatMessage['metadata'] }) {
         </a>
       )}
     </div>
-  )
+  );
 }
 
-function ChallengeInviteCard({ meta }: { meta: ChatMessage['metadata'] }) {
+function ChallengeInviteCard({ meta }: { meta: ChatMessage["metadata"] }) {
   return (
     <div className="mt-1 rounded-xl border border-(--color-border) bg-(--color-bg) p-3 min-w-48 max-w-64">
-      <p className="text-xs font-semibold text-(--color-text-secondary) mb-1">⚔️ Challenge Invite</p>
+      <p className="text-xs font-semibold text-(--color-text-secondary) mb-1">
+        ⚔️ Challenge Invite
+      </p>
       <p className="text-sm font-semibold text-(--color-text-primary)">
-        {meta?.challenge_title ?? 'Weekly Challenge'}
+        {meta?.challenge_title ?? "Weekly Challenge"}
       </p>
       {meta?.xp_reward && (
-        <p className="text-xs text-amber-500 mt-0.5">+{meta.xp_reward} XP on completion</p>
+        <p className="text-xs text-amber-500 mt-0.5">
+          +{meta.xp_reward} XP on completion
+        </p>
       )}
       <a
         href="/challenges"
@@ -126,14 +138,18 @@ function ChallengeInviteCard({ meta }: { meta: ChatMessage['metadata'] }) {
         View Challenge →
       </a>
     </div>
-  )
+  );
 }
 
 function BattleInviteCard() {
   return (
     <div className="mt-1 rounded-xl border border-(--color-border) bg-(--color-bg) p-3 min-w-48 max-w-64">
-      <p className="text-xs font-semibold text-(--color-text-secondary) mb-1">🏟 Battle Challenge</p>
-      <p className="text-sm font-semibold text-(--color-text-primary)">5 problems · 45 min</p>
+      <p className="text-xs font-semibold text-(--color-text-secondary) mb-1">
+        🏟 Battle Challenge
+      </p>
+      <p className="text-sm font-semibold text-(--color-text-primary)">
+        5 problems · 45 min
+      </p>
       <a
         href="/battles"
         className="mt-2 block text-xs font-semibold text-red-500 hover:underline"
@@ -141,7 +157,7 @@ function BattleInviteCard() {
         Accept Battle →
       </a>
     </div>
-  )
+  );
 }
 
 // ── Typing indicator ──────────────────────────────────────────────────────────
@@ -155,19 +171,19 @@ function TypingIndicator() {
             key={i}
             className="w-1.5 h-1.5 rounded-full bg-(--color-text-secondary)"
             style={{
-              animation: 'typingPulse 1.2s ease-in-out infinite',
+              animation: "typingPulse 1.2s ease-in-out infinite",
               animationDelay: `${i * 0.2}s`,
             }}
           />
         ))}
       </div>
     </div>
-  )
+  );
 }
 
 // ── Message bubble ────────────────────────────────────────────────────────────
 
-const QUICK_EMOJIS = ['👍', '🔥', '💡', '😂', '🎯', '✅']
+const QUICK_EMOJIS = ["👍", "🔥", "💡", "😂", "🎯", "✅"];
 
 function MessageBubble({
   msg,
@@ -175,49 +191,53 @@ function MessageBubble({
   onReact,
   onRead,
 }: {
-  msg: ChatMessage
-  isOwn: boolean
-  onReact: (msgId: string, emoji: string) => void
-  onRead: (msgId: string) => void
+  msg: ChatMessage;
+  isOwn: boolean;
+  onReact: (msgId: string, emoji: string) => void;
+  onRead: (msgId: string) => void;
 }) {
-  const [showReactions, setShowReactions] = useState(false)
+  const [showReactions, setShowReactions] = useState(false);
 
   // Mark as read when rendered and it's not my own
-  const readRef = useRef(false)
+  const readRef = useRef(false);
   useEffect(() => {
     if (!isOwn && !msg.read_at && !readRef.current) {
-      readRef.current = true
-      onRead(msg.id)
+      readRef.current = true;
+      onRead(msg.id);
     }
-  }, [isOwn, msg.id, msg.read_at, onRead])
+  }, [isOwn, msg.id, msg.read_at, onRead]);
 
   const bubbleCls = isOwn
-    ? 'bg-(--color-accent)/20 rounded-2xl rounded-br-sm self-end'
-    : 'bg-(--color-bg) border border-(--color-border) rounded-2xl rounded-bl-sm self-start'
+    ? "bg-(--color-accent)/20 rounded-2xl rounded-br-sm self-end"
+    : "bg-(--color-bg) border border-(--color-border) rounded-2xl rounded-bl-sm self-start";
 
   const grouped =
     msg.reactions.length > 0
       ? msg.reactions.reduce<Record<string, number>>((acc, r) => {
-          acc[r.emoji] = (acc[r.emoji] ?? 0) + 1
-          return acc
+          acc[r.emoji] = (acc[r.emoji] ?? 0) + 1;
+          return acc;
         }, {})
-      : null
+      : null;
 
   return (
     <div
-      className={`group/msg flex flex-col ${isOwn ? 'items-end' : 'items-start'} max-w-[70%] ${isOwn ? 'self-end' : 'self-start'}`}
+      className={`group/msg flex flex-col ${isOwn ? "items-end" : "items-start"} max-w-[70%] ${isOwn ? "self-end" : "self-start"}`}
       onMouseEnter={() => setShowReactions(true)}
       onMouseLeave={() => setShowReactions(false)}
     >
       <div className={`relative px-3 py-2 ${bubbleCls}`}>
-        {msg.type === 'text' && (
+        {msg.type === "text" && (
           <p className="text-sm text-(--color-text-primary) whitespace-pre-wrap break-words leading-relaxed">
             {msg.content}
           </p>
         )}
-        {msg.type === 'problem_share' && <ProblemShareCard meta={msg.metadata} />}
-        {msg.type === 'challenge_invite' && <ChallengeInviteCard meta={msg.metadata} />}
-        {msg.type === 'battle_invite' && <BattleInviteCard />}
+        {msg.type === "problem_share" && (
+          <ProblemShareCard meta={msg.metadata} />
+        )}
+        {msg.type === "challenge_invite" && (
+          <ChallengeInviteCard meta={msg.metadata} />
+        )}
+        {msg.type === "battle_invite" && <BattleInviteCard />}
 
         {/* Reaction bar on hover */}
         <AnimatePresence>
@@ -227,7 +247,7 @@ function MessageBubble({
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9 }}
               transition={{ duration: 0.12 }}
-              className={`absolute ${isOwn ? 'right-0' : 'left-0'} -bottom-9 z-10 flex gap-1 bg-(--color-surface) border border-(--color-border) rounded-full px-2 py-1 shadow-lg`}
+              className={`absolute ${isOwn ? "right-0" : "left-0"} -bottom-9 z-10 flex gap-1 bg-(--color-surface) border border-(--color-border) rounded-full px-2 py-1 shadow-lg`}
             >
               {QUICK_EMOJIS.map((emoji) => (
                 <button
@@ -252,23 +272,34 @@ function MessageBubble({
               onClick={() => onReact(msg.id, emoji)}
               className="flex items-center gap-0.5 text-xs bg-(--color-bg) border border-(--color-border) rounded-full px-1.5 py-0.5 hover:border-(--color-accent)/50 transition-colors"
             >
-              {emoji} {count > 1 && <span className="text-(--color-text-secondary)">{count}</span>}
+              {emoji}{" "}
+              {count > 1 && (
+                <span className="text-(--color-text-secondary)">{count}</span>
+              )}
             </button>
           ))}
         </div>
       )}
 
       {/* Time + read receipt */}
-      <div className={`flex items-center gap-1 mt-0.5 ${isOwn ? 'self-end' : 'self-start'}`}>
-        <span className="text-[11px] text-(--color-text-secondary)">{fmtTime(msg.sent_at)}</span>
+      <div
+        className={`flex items-center gap-1 mt-0.5 ${isOwn ? "self-end" : "self-start"}`}
+      >
+        <span className="text-[11px] text-(--color-text-secondary)">
+          {fmtTime(msg.sent_at)}
+        </span>
         {isOwn && (
-          <span className={msg.read_at ? 'text-blue-400' : 'text-(--color-text-secondary)'}>
+          <span
+            className={
+              msg.read_at ? "text-blue-400" : "text-(--color-text-secondary)"
+            }
+          >
             {msg.read_at ? <IconChecks size={12} /> : <IconCheck size={12} />}
           </span>
         )}
       </div>
     </div>
-  )
+  );
 }
 
 // ── Message input ─────────────────────────────────────────────────────────────
@@ -277,54 +308,56 @@ function MessageInput({
   onSend,
   onTyping,
 }: {
-  onSend: (content: string) => void
-  onTyping: (isTyping: boolean) => void
+  onSend: (content: string) => void;
+  onTyping: (isTyping: boolean) => void;
 }) {
-  const [value, setValue] = useState('')
-  const textareaRef = useRef<HTMLTextAreaElement>(null)
-  const typingTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
-  const isTypingRef = useRef(false)
+  const [value, setValue] = useState("");
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const typingTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(
+    undefined,
+  );
+  const isTypingRef = useRef(false);
 
   function autoResize() {
-    const el = textareaRef.current
-    if (!el) return
-    el.style.height = 'auto'
-    el.style.height = Math.min(el.scrollHeight, 96) + 'px'
+    const el = textareaRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = Math.min(el.scrollHeight, 96) + "px";
   }
 
   function handleChange(e: React.ChangeEvent<HTMLTextAreaElement>) {
-    setValue(e.target.value)
-    autoResize()
+    setValue(e.target.value);
+    autoResize();
 
     if (!isTypingRef.current) {
-      isTypingRef.current = true
-      onTyping(true)
+      isTypingRef.current = true;
+      onTyping(true);
     }
-    clearTimeout(typingTimerRef.current)
+    clearTimeout(typingTimerRef.current);
     typingTimerRef.current = setTimeout(() => {
-      isTypingRef.current = false
-      onTyping(false)
-    }, 2000)
+      isTypingRef.current = false;
+      onTyping(false);
+    }, 2000);
   }
 
   function handleKeyDown(e: React.KeyboardEvent) {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault()
-      submit()
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      submit();
     }
   }
 
   function submit() {
-    const trimmed = value.trim()
-    if (!trimmed) return
-    onSend(trimmed)
-    setValue('')
-    clearTimeout(typingTimerRef.current)
-    isTypingRef.current = false
-    onTyping(false)
+    const trimmed = value.trim();
+    if (!trimmed) return;
+    onSend(trimmed);
+    setValue("");
+    clearTimeout(typingTimerRef.current);
+    isTypingRef.current = false;
+    onTyping(false);
     if (textareaRef.current) {
-      textareaRef.current.style.height = 'auto'
-      textareaRef.current.focus()
+      textareaRef.current.style.height = "auto";
+      textareaRef.current.focus();
     }
   }
 
@@ -338,7 +371,7 @@ function MessageInput({
         placeholder="Type a message…"
         rows={1}
         className="flex-1 resize-none rounded-xl bg-(--color-bg) border border-(--color-border) px-3 py-2 text-sm text-(--color-text-primary) placeholder:text-(--color-text-secondary) focus:outline-none focus:border-(--color-accent)/60 transition-colors leading-relaxed"
-        style={{ maxHeight: 96, overflowY: 'auto' }}
+        style={{ maxHeight: 96, overflowY: "auto" }}
       />
       <button
         onClick={submit}
@@ -349,7 +382,7 @@ function MessageInput({
         <IconSend size={18} />
       </button>
     </div>
-  )
+  );
 }
 
 // ── Conversation row ──────────────────────────────────────────────────────────
@@ -359,23 +392,29 @@ function ConversationRow({
   active,
   onClick,
 }: {
-  conv: Conversation
-  active: boolean
-  onClick: () => void
+  conv: Conversation;
+  active: boolean;
+  onClick: () => void;
 }) {
   return (
     <button
       onClick={onClick}
       className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-colors ${
         active
-          ? 'bg-(--color-accent)/10 text-(--color-accent)'
-          : 'hover:bg-(--color-bg) text-(--color-text-primary)'
+          ? "bg-(--color-accent)/10 text-(--color-accent)"
+          : "hover:bg-(--color-bg) text-(--color-text-primary)"
       }`}
     >
-      <Avatar name={conv.other_user.name} avatarUrl={conv.other_user.avatarUrl} size={40} />
+      <Avatar
+        name={conv.other_user.name}
+        avatarUrl={conv.other_user.avatarUrl}
+        size={40}
+      />
       <div className="flex-1 min-w-0">
         <div className="flex items-center justify-between gap-2">
-          <p className="text-sm font-semibold truncate">{conv.other_user.name}</p>
+          <p className="text-sm font-semibold truncate">
+            {conv.other_user.name}
+          </p>
           {conv.last_message_at && (
             <span className="text-[11px] text-(--color-text-secondary) shrink-0">
               {fmtTime(conv.last_message_at)}
@@ -384,17 +423,17 @@ function ConversationRow({
         </div>
         <div className="flex items-center justify-between gap-2">
           <p className="text-xs text-(--color-text-secondary) truncate">
-            {conv.last_message_preview ?? 'No messages yet'}
+            {conv.last_message_preview ?? "No messages yet"}
           </p>
           {conv.unread_count > 0 && (
             <span className="shrink-0 min-w-4 h-4 px-1 flex items-center justify-center bg-(--color-accent) text-white text-[10px] font-bold rounded-full">
-              {conv.unread_count > 9 ? '9+' : conv.unread_count}
+              {conv.unread_count > 9 ? "9+" : conv.unread_count}
             </span>
           )}
         </div>
       </div>
     </button>
-  )
+  );
 }
 
 // ── New chat modal ────────────────────────────────────────────────────────────
@@ -403,28 +442,33 @@ function NewChatModal({
   onClose,
   onSelect,
 }: {
-  onClose: () => void
-  onSelect: (friendId: string) => void
+  onClose: () => void;
+  onSelect: (friendId: string) => void;
 }) {
   const [friends, setFriends] = useState<
-    Array<{ id: string; name: string; username: string; avatarUrl?: string | null }>
-  >([])
-  const [loading, setLoading] = useState(true)
-  const [q, setQ] = useState('')
+    Array<{
+      id: string;
+      name: string;
+      username: string;
+      avatarUrl?: string | null;
+    }>
+  >([]);
+  const [loading, setLoading] = useState(true);
+  const [q, setQ] = useState("");
 
   useEffect(() => {
     api
-      .get<{ friends: typeof friends }>('/api/friends')
+      .get<{ friends: typeof friends }>("/api/friends")
       .then((r) => setFriends(r.data.friends))
       .catch(() => {})
-      .finally(() => setLoading(false))
-  }, [])
+      .finally(() => setLoading(false));
+  }, []);
 
   const filtered = friends.filter(
     (f) =>
       f.name.toLowerCase().includes(q.toLowerCase()) ||
       f.username.toLowerCase().includes(q.toLowerCase()),
-  )
+  );
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
@@ -435,8 +479,13 @@ function NewChatModal({
         className="bg-(--color-surface) border border-(--color-border) rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden"
       >
         <div className="flex items-center justify-between px-4 py-3 border-b border-(--color-border)">
-          <p className="text-sm font-semibold text-(--color-text-primary)">New Chat</p>
-          <button onClick={onClose} className="text-(--color-text-secondary) hover:text-(--color-text-primary)">
+          <p className="text-sm font-semibold text-(--color-text-primary)">
+            New Chat
+          </p>
+          <button
+            onClick={onClose}
+            className="text-(--color-text-secondary) hover:text-(--color-text-primary)"
+          >
             <IconX size={16} />
           </button>
         </div>
@@ -455,10 +504,15 @@ function NewChatModal({
         <div className="max-h-72 overflow-y-auto p-2">
           {loading ? (
             <div className="flex items-center justify-center py-8">
-              <IconLoader2 size={20} className="animate-spin text-(--color-text-secondary)" />
+              <IconLoader2
+                size={20}
+                className="animate-spin text-(--color-text-secondary)"
+              />
             </div>
           ) : filtered.length === 0 ? (
-            <p className="text-sm text-(--color-text-secondary) text-center py-6">No friends found</p>
+            <p className="text-sm text-(--color-text-secondary) text-center py-6">
+              No friends found
+            </p>
           ) : (
             filtered.map((f) => (
               <button
@@ -468,8 +522,12 @@ function NewChatModal({
               >
                 <Avatar name={f.name} avatarUrl={f.avatarUrl} size={36} />
                 <div className="text-left">
-                  <p className="text-sm font-medium text-(--color-text-primary)">{f.name}</p>
-                  <p className="text-xs text-(--color-text-secondary)">@{f.username}</p>
+                  <p className="text-sm font-medium text-(--color-text-primary)">
+                    {f.name}
+                  </p>
+                  <p className="text-xs text-(--color-text-secondary)">
+                    @{f.username}
+                  </p>
                 </div>
               </button>
             ))
@@ -477,7 +535,7 @@ function NewChatModal({
         </div>
       </motion.div>
     </div>
-  )
+  );
 }
 
 // ── Date separator ────────────────────────────────────────────────────────────
@@ -491,15 +549,15 @@ function DateSeparator({ ts }: { ts: number }) {
       </span>
       <span className="flex-1 h-px bg-(--color-border)" />
     </div>
-  )
+  );
 }
 
 // ── Main ChatPage ─────────────────────────────────────────────────────────────
 
 export default function ChatPage() {
-  const { user } = useAuthStore()
-  const [searchParams, setSearchParams] = useSearchParams()
-  const navigate = useNavigate()
+  const { user } = useAuthStore();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
 
   const {
     conversations,
@@ -511,113 +569,128 @@ export default function ChatPage() {
     setActiveConversation,
     fetchConversations,
     markRead,
-  } = useChatStore()
+  } = useChatStore();
 
-  const [chatView, setChatView] = useState<'list' | 'thread'>('list')
-  const [searchQ, setSearchQ] = useState('')
-  const [showNewChat, setShowNewChat] = useState(false)
-  const [openingConv, setOpeningConv] = useState(false)
+  const [chatView, setChatView] = useState<"list" | "thread">("list");
+  const [searchQ, setSearchQ] = useState("");
+  const [showNewChat, setShowNewChat] = useState(false);
+  const [openingConv, setOpeningConv] = useState(false);
 
-  const msgListRef = useRef<HTMLDivElement>(null)
-  const isAtBottomRef = useRef(true)
-  const initialScrollRef = useRef(false)
+  const msgListRef = useRef<HTMLDivElement>(null);
+  const isAtBottomRef = useRef(true);
+  const initialScrollRef = useRef(false);
 
-  const activeConv = conversations.find((c) => c.id === activeConversationId) ?? null
-  const activeMessages = activeConversationId ? (messages[activeConversationId] ?? []) : []
+  const activeConv =
+    conversations.find((c) => c.id === activeConversationId) ?? null;
+  const activeMessages = activeConversationId
+    ? (messages[activeConversationId] ?? [])
+    : [];
 
-  const { isConnected, isTyping, hasOlderMessages, loadingHistory, sendMessage, sendTyping, sendRead, sendReaction, loadOlderMessages } =
-    useChatWebSocket(activeConversationId)
+  const {
+    isConnected,
+    isTyping,
+    hasOlderMessages,
+    loadingHistory,
+    sendMessage,
+    sendTyping,
+    sendRead,
+    sendReaction,
+    loadOlderMessages,
+  } = useChatWebSocket(activeConversationId);
 
   // Load conversations on mount
   useEffect(() => {
     if (!conversationsLoaded) {
-      void fetchConversations()
+      void fetchConversations();
     }
-  }, [conversationsLoaded, fetchConversations])
+  }, [conversationsLoaded, fetchConversations]);
 
   // Handle ?with= param — open conversation with a friend
   useEffect(() => {
-    const withId = searchParams.get('with')
-    if (!withId || openingConv) return
-    setOpeningConv(true)
+    const withId = searchParams.get("with");
+    if (!withId || openingConv) return;
+    setOpeningConv(true);
     api
       .get<{ conversation_id: string }>(`/api/chat/with/${withId}`)
       .then((r) => {
-        setActiveConversation(r.data.conversation_id)
-        setChatView('thread')
-        setSearchParams({}, { replace: true })
-        void fetchConversations()
+        setActiveConversation(r.data.conversation_id);
+        setChatView("thread");
+        setSearchParams({}, { replace: true });
+        void fetchConversations();
       })
       .catch(() => {})
-      .finally(() => setOpeningConv(false))
-  }, [searchParams]) // eslint-disable-line react-hooks/exhaustive-deps
+      .finally(() => setOpeningConv(false));
+  }, [searchParams]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Mark read when conversation becomes active
   useEffect(() => {
     if (activeConversationId) {
-      markRead(activeConversationId)
+      markRead(activeConversationId);
     }
-  }, [activeConversationId, markRead])
+  }, [activeConversationId, markRead]);
 
   // Auto-scroll to bottom on new messages
   useEffect(() => {
-    const el = msgListRef.current
-    if (!el) return
+    const el = msgListRef.current;
+    if (!el) return;
 
     if (!initialScrollRef.current) {
-      el.scrollTop = el.scrollHeight
-      initialScrollRef.current = true
-      return
+      el.scrollTop = el.scrollHeight;
+      initialScrollRef.current = true;
+      return;
     }
 
     if (isAtBottomRef.current) {
-      el.scrollTop = el.scrollHeight
+      el.scrollTop = el.scrollHeight;
     }
-  }, [activeMessages.length])
+  }, [activeMessages.length]);
 
   // Reset scroll state when conversation changes
   useEffect(() => {
-    initialScrollRef.current = false
-    isAtBottomRef.current = true
-  }, [activeConversationId])
+    initialScrollRef.current = false;
+    isAtBottomRef.current = true;
+  }, [activeConversationId]);
 
   function handleScroll() {
-    const el = msgListRef.current
-    if (!el) return
-    const fromBottom = el.scrollHeight - el.scrollTop - el.clientHeight
-    isAtBottomRef.current = fromBottom < 80
+    const el = msgListRef.current;
+    if (!el) return;
+    const fromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
+    isAtBottomRef.current = fromBottom < 80;
 
     // Infinite scroll: load older when near top
     if (el.scrollTop < 60 && hasOlderMessages && !loadingHistory) {
-      const prevHeight = el.scrollHeight
-      loadOlderMessages()
+      const prevHeight = el.scrollHeight;
+      loadOlderMessages();
       // Maintain scroll position after prepend
       requestAnimationFrame(() => {
         if (msgListRef.current) {
-          msgListRef.current.scrollTop = msgListRef.current.scrollHeight - prevHeight
+          msgListRef.current.scrollTop =
+            msgListRef.current.scrollHeight - prevHeight;
         }
-      })
+      });
     }
   }
 
   async function openConversation(friendId: string) {
-    setShowNewChat(false)
-    setOpeningConv(true)
+    setShowNewChat(false);
+    setOpeningConv(true);
     try {
-      const r = await api.get<{ conversation_id: string }>(`/api/chat/with/${friendId}`)
-      setActiveConversation(r.data.conversation_id)
-      setChatView('thread')
-      void fetchConversations()
+      const r = await api.get<{ conversation_id: string }>(
+        `/api/chat/with/${friendId}`,
+      );
+      setActiveConversation(r.data.conversation_id);
+      setChatView("thread");
+      void fetchConversations();
     } catch {}
-    setOpeningConv(false)
+    setOpeningConv(false);
   }
 
   function handleSend(content: string) {
-    sendMessage(content)
+    sendMessage(content);
   }
 
   function handleTyping(isTypingNow: boolean) {
-    sendTyping(isTypingNow)
+    sendTyping(isTypingNow);
   }
 
   const filtered = conversations.filter(
@@ -625,36 +698,42 @@ export default function ChatPage() {
       !searchQ ||
       c.other_user.name.toLowerCase().includes(searchQ.toLowerCase()) ||
       c.other_user.username.toLowerCase().includes(searchQ.toLowerCase()),
-  )
+  );
 
   // Group messages by date for separators
-  const groupedMessages: Array<{ type: 'separator'; ts: number } | { type: 'message'; msg: ChatMessage }> = []
-  let lastDateKey = ''
+  const groupedMessages: Array<
+    { type: "separator"; ts: number } | { type: "message"; msg: ChatMessage }
+  > = [];
+  let lastDateKey = "";
   for (const msg of activeMessages) {
-    const key = getDateKey(msg.sent_at)
+    const key = getDateKey(msg.sent_at);
     if (key !== lastDateKey) {
-      groupedMessages.push({ type: 'separator', ts: msg.sent_at })
-      lastDateKey = key
+      groupedMessages.push({ type: "separator", ts: msg.sent_at });
+      lastDateKey = key;
     }
-    groupedMessages.push({ type: 'message', msg })
+    groupedMessages.push({ type: "message", msg });
   }
 
-  const otherTyping = activeConversationId ? (typingUsers[activeConversationId] ?? isTyping) : false
+  const otherTyping = activeConversationId
+    ? (typingUsers[activeConversationId] ?? isTyping)
+    : false;
 
   // ── Panels ────────────────────────────────────────────────────────────────
 
   const leftPanel = (
     <div
       className={[
-        'flex flex-col border-r border-(--color-border) bg-(--color-surface) shrink-0',
-        'md:flex md:w-72',
-        chatView === 'thread' ? 'hidden md:flex' : 'flex w-full',
-      ].join(' ')}
+        "flex flex-col border-r border-(--color-border) bg-(--color-surface) shrink-0",
+        "md:flex md:w-72",
+        chatView === "thread" ? "hidden md:flex" : "flex w-full",
+      ].join(" ")}
     >
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-(--color-border) shrink-0">
         <div className="flex items-center gap-2">
-          <p className="text-sm font-semibold text-(--color-text-primary)">Messages</p>
+          <p className="text-sm font-semibold text-(--color-text-primary)">
+            Messages
+          </p>
           {totalUnread > 0 && (
             <span className="text-[10px] font-bold text-white bg-(--color-accent) px-1.5 py-0.5 rounded-full">
               {totalUnread}
@@ -700,7 +779,9 @@ export default function ChatPage() {
         ) : filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-12 gap-2">
             <IconMessageCircle size={36} className="text-(--color-border)" />
-            <p className="text-sm text-(--color-text-secondary)">No conversations yet</p>
+            <p className="text-sm text-(--color-text-secondary)">
+              No conversations yet
+            </p>
             <button
               onClick={() => setShowNewChat(true)}
               className="text-xs font-semibold text-(--color-accent) hover:underline"
@@ -715,28 +796,34 @@ export default function ChatPage() {
               conv={conv}
               active={conv.id === activeConversationId}
               onClick={() => {
-                setActiveConversation(conv.id)
-                setChatView('thread')
+                setActiveConversation(conv.id);
+                setChatView("thread");
               }}
             />
           ))
         )}
       </div>
     </div>
-  )
+  );
 
   const rightPanel = (
     <div
       className={[
-        'flex flex-col flex-1 min-w-0',
-        chatView === 'list' ? 'hidden md:flex' : 'flex',
-      ].join(' ')}
+        "flex flex-col flex-1 min-w-0",
+        chatView === "list" ? "hidden md:flex" : "flex",
+      ].join(" ")}
     >
       {!activeConv ? (
         // Empty state
         <div className="flex-1 flex flex-col items-center justify-center gap-3 text-(--color-text-secondary)">
-          <IconMessageCircle size={56} strokeWidth={1.25} className="text-(--color-border)" />
-          <p className="text-sm font-medium">Select a friend to start chatting</p>
+          <IconMessageCircle
+            size={56}
+            strokeWidth={1.25}
+            className="text-(--color-border)"
+          />
+          <p className="text-sm font-medium">
+            Select a friend to start chatting
+          </p>
           <button
             onClick={() => setShowNewChat(true)}
             className="flex items-center gap-1.5 text-xs font-semibold text-(--color-accent) hover:underline"
@@ -750,14 +837,19 @@ export default function ChatPage() {
           <div className="shrink-0 flex items-center gap-3 px-4 h-14 border-b border-(--color-border) bg-(--color-surface)">
             <button
               onClick={() => {
-                setChatView('list')
-                setActiveConversation(null)
+                setChatView("list");
+                setActiveConversation(null);
               }}
               className="md:hidden p-1.5 text-(--color-text-secondary) hover:text-(--color-text-primary) transition-colors"
             >
               <IconArrowLeft size={18} />
             </button>
-            <Avatar name={activeConv.other_user.name} avatarUrl={activeConv.other_user.avatarUrl} size={34} online={isConnected} />
+            <Avatar
+              name={activeConv.other_user.name}
+              avatarUrl={activeConv.other_user.avatarUrl}
+              size={34}
+              online={isConnected}
+            />
             <div className="flex-1 min-w-0">
               <p className="text-sm font-semibold text-(--color-text-primary) truncate">
                 {activeConv.other_user.name}
@@ -785,30 +877,40 @@ export default function ChatPage() {
           >
             {loadingHistory && hasOlderMessages && (
               <div className="flex justify-center py-2">
-                <IconLoader2 size={18} className="animate-spin text-(--color-text-secondary)" />
+                <IconLoader2
+                  size={18}
+                  className="animate-spin text-(--color-text-secondary)"
+                />
               </div>
             )}
 
             {groupedMessages.map((item, i) => {
-              if (item.type === 'separator') {
-                return <DateSeparator key={`sep-${i}`} ts={item.ts} />
+              if (item.type === "separator") {
+                return <DateSeparator key={`sep-${i}`} ts={item.ts} />;
               }
-              const msg = item.msg
-              const isOwn = msg.sender_id === user?.id
+              const msg = item.msg;
+              const isOwn = msg.sender_id === user?.id;
               return (
                 <MessageBubble
                   key={msg.id}
                   msg={msg}
                   isOwn={isOwn}
                   onReact={(msgId, emoji) => {
-                    sendReaction(msgId, emoji)
+                    sendReaction(msgId, emoji);
                     if (activeConversationId) {
-                      useChatStore.getState().addReaction(activeConversationId, msgId, user?.id ?? '', emoji)
+                      useChatStore
+                        .getState()
+                        .addReaction(
+                          activeConversationId,
+                          msgId,
+                          user?.id ?? "",
+                          emoji,
+                        );
                     }
                   }}
                   onRead={sendRead}
                 />
-              )
+              );
             })}
 
             <AnimatePresence>
@@ -829,7 +931,7 @@ export default function ChatPage() {
         </>
       )}
     </div>
-  )
+  );
 
   return (
     <>
@@ -840,7 +942,7 @@ export default function ChatPage() {
         }
       `}</style>
 
-      <div className="flex h-full overflow-hidden">
+      <div className="flex h-[calc(100vh-60px)] overflow-hidden">
         {leftPanel}
         {rightPanel}
       </div>
@@ -854,5 +956,5 @@ export default function ChatPage() {
         )}
       </AnimatePresence>
     </>
-  )
+  );
 }
