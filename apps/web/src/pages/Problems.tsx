@@ -20,7 +20,7 @@ import {
   IconBulb,
   IconCheck,
 } from '@tabler/icons-react'
-import { useProgressStore, type Problem, type McqContent } from '../store/progressStore'
+import { useProgressStore, type Problem } from '../store/progressStore'
 import TopicSidebar from '../components/problems/TopicSidebar'
 import ProblemDrawer from '../components/problems/ProblemDrawer'
 import McqModal from '../components/problems/McqModal'
@@ -363,7 +363,6 @@ export default function ProblemsPage() {
 
   const showTopicSidebar = subject === 'dsa'
   const showPlatformCol = !questionType || questionType === 'coding' || questionType === 'sql'
-  const showTypeCol = !questionType || questionType === 'all'
 
   return (
     <div className="flex h-full overflow-hidden">

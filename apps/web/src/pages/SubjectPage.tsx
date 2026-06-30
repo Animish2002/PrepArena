@@ -9,7 +9,7 @@ import {
   IconServer,
   IconArrowRight,
   IconCheck,
-  IconBookOpen,
+  IconBook,
   IconCode,
   IconBrain,
 } from '@tabler/icons-react'
@@ -41,7 +41,7 @@ const SUBJECT_CONFIG: Record<string, SubjectConfig> = {
     icon: IconDatabase,
     color: 'text-cyan-500',
     recommendedOrder: [
-      { type: 'theory', label: 'SQL Theory',  icon: IconBookOpen },
+      { type: 'theory', label: 'SQL Theory',  icon: IconBook },
       { type: 'sql',    label: 'SQL Coding',  icon: IconCode     },
     ],
   },
@@ -51,7 +51,7 @@ const SUBJECT_CONFIG: Record<string, SubjectConfig> = {
     icon: IconCoffee,
     color: 'text-amber-500',
     recommendedOrder: [
-      { type: 'theory', label: 'Theory',  icon: IconBookOpen },
+      { type: 'theory', label: 'Theory',  icon: IconBook },
       { type: 'mcq',    label: 'MCQ',     icon: IconBrain    },
     ],
   },
@@ -61,7 +61,7 @@ const SUBJECT_CONFIG: Record<string, SubjectConfig> = {
     icon: IconCube,
     color: 'text-violet-500',
     recommendedOrder: [
-      { type: 'theory', label: 'Theory', icon: IconBookOpen },
+      { type: 'theory', label: 'Theory', icon: IconBook },
       { type: 'mcq',    label: 'MCQ',    icon: IconBrain    },
     ],
   },
@@ -71,7 +71,7 @@ const SUBJECT_CONFIG: Record<string, SubjectConfig> = {
     icon: IconLeaf,
     color: 'text-green-500',
     recommendedOrder: [
-      { type: 'theory', label: 'Theory', icon: IconBookOpen },
+      { type: 'theory', label: 'Theory', icon: IconBook },
     ],
   },
   'system-design': {
@@ -80,7 +80,7 @@ const SUBJECT_CONFIG: Record<string, SubjectConfig> = {
     icon: IconServer,
     color: 'text-blue-500',
     recommendedOrder: [
-      { type: 'theory', label: 'Theory', icon: IconBookOpen },
+      { type: 'theory', label: 'Theory', icon: IconBook },
     ],
   },
 }

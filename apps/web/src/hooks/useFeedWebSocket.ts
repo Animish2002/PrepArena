@@ -58,7 +58,8 @@ export function useFeedWebSocket() {
       .replace('https://', 'wss://')
       .replace('http://', 'ws://')
 
-    const ws = new WebSocket(`${apiUrl}/api/feed/ws`)
+    const token = localStorage.getItem('preParena_token') ?? ''
+    const ws = new WebSocket(`${apiUrl}/api/feed/ws?token=${encodeURIComponent(token)}`)
     wsRef.current = ws
 
     ws.onopen = () => {

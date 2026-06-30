@@ -58,7 +58,8 @@ export function useChatWebSocket(conversationId: string | null) {
       .replace('https://', 'wss://')
       .replace('http://', 'ws://')
 
-    const ws = new WebSocket(`${apiUrl}/api/chat/conversations/${convId}/ws`)
+    const token = localStorage.getItem('preParena_token') ?? ''
+    const ws = new WebSocket(`${apiUrl}/api/chat/conversations/${convId}/ws?token=${encodeURIComponent(token)}`)
     wsRef.current = ws
 
     ws.onopen = () => {
