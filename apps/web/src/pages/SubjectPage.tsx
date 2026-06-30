@@ -12,6 +12,10 @@ import {
   IconBook,
   IconCode,
   IconBrain,
+  IconBrandReact,
+  IconBrandAngular,
+  IconBrandJavascript,
+  IconBolt,
 } from '@tabler/icons-react'
 import { useProgressStore, type Problem } from '../store/progressStore'
 
@@ -81,6 +85,47 @@ const SUBJECT_CONFIG: Record<string, SubjectConfig> = {
     color: 'text-blue-500',
     recommendedOrder: [
       { type: 'theory', label: 'Theory', icon: IconBook },
+      { type: 'mcq',    label: 'MCQ',    icon: IconBrain },
+    ],
+  },
+  javascript: {
+    label: 'JavaScript',
+    description: 'Master closures, event loop, prototypes, async/await, and ES6+ — inside out.',
+    icon: IconBrandJavascript,
+    color: 'text-yellow-400',
+    recommendedOrder: [
+      { type: 'theory', label: 'Theory', icon: IconBook  },
+      { type: 'mcq',    label: 'MCQ',    icon: IconBrain },
+    ],
+  },
+  react: {
+    label: 'React',
+    description: 'Deep-dive into hooks, Fiber, reconciliation, performance, and React 18 concurrent features.',
+    icon: IconBrandReact,
+    color: 'text-cyan-400',
+    recommendedOrder: [
+      { type: 'theory', label: 'Theory', icon: IconBook  },
+      { type: 'mcq',    label: 'MCQ',    icon: IconBrain },
+    ],
+  },
+  angular: {
+    label: 'Angular',
+    description: 'Cover DI, change detection, signals, RxJS integration, forms, and Angular 17+ features.',
+    icon: IconBrandAngular,
+    color: 'text-red-500',
+    recommendedOrder: [
+      { type: 'theory', label: 'Theory', icon: IconBook  },
+      { type: 'mcq',    label: 'MCQ',    icon: IconBrain },
+    ],
+  },
+  rxjs: {
+    label: 'RxJS',
+    description: 'Master Observables, Subjects, switchMap vs mergeMap, error handling, and real-world patterns.',
+    icon: IconBolt,
+    color: 'text-pink-500',
+    recommendedOrder: [
+      { type: 'theory', label: 'Theory', icon: IconBook  },
+      { type: 'mcq',    label: 'MCQ',    icon: IconBrain },
     ],
   },
 }

@@ -4,7 +4,7 @@
  * Run:   npx tsx src/scripts/runSubjectSeeds.ts
  * Apply: npx wrangler d1 execute preParena-db --local  --file=src/scripts/sql/java.sql
  *        npx wrangler d1 execute preParena-db --remote --file=src/scripts/sql/java.sql
- *   (repeat for oops.sql, spring.sql, sql-theory.sql, sql-coding.sql)
+ *   (repeat for all sql files in src/scripts/sql/)
  */
 import { writeFileSync, mkdirSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
@@ -14,6 +14,11 @@ import { allOopsProblems } from './seedOops'
 import { allSpringProblems } from './seedSpring'
 import { allSqlTheoryProblems } from './seedSqlTheory'
 import { allSqlCodingProblems } from './seedSqlCoding'
+import { allJavaScriptProblems } from './seedJavaScript'
+import { allReactProblems } from './seedReact'
+import { allAngularProblems } from './seedAngular'
+import { allRxjsProblems } from './seedRxjs'
+import { allSystemDesignProblems } from './seedSystemDesign'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const SQL_DIR = join(__dirname, 'sql')
@@ -88,13 +93,23 @@ writeSql('oops', 'OOPs Theory + MCQ', allOopsProblems)
 writeSql('spring', 'Spring Boot Theory', allSpringProblems)
 writeSql('sql-theory', 'SQL Theory', allSqlTheoryProblems)
 writeSql('sql-coding', 'SQL Coding (LeetCode SQL 50 + HackerRank SQL)', allSqlCodingProblems)
+writeSql('javascript', 'JavaScript Theory + MCQ', allJavaScriptProblems)
+writeSql('react', 'React Theory + MCQ', allReactProblems)
+writeSql('angular', 'Angular Theory + MCQ', allAngularProblems)
+writeSql('rxjs', 'RxJS Theory + MCQ', allRxjsProblems)
+writeSql('system-design', 'System Design Theory + MCQ', allSystemDesignProblems)
 
 const total =
   allJavaProblems.length +
   allOopsProblems.length +
   allSpringProblems.length +
   allSqlTheoryProblems.length +
-  allSqlCodingProblems.length
+  allSqlCodingProblems.length +
+  allJavaScriptProblems.length +
+  allReactProblems.length +
+  allAngularProblems.length +
+  allRxjsProblems.length +
+  allSystemDesignProblems.length
 
-console.log(`\nDone. ${total} total rows across 5 SQL files.`)
-console.log('Run each with: npx wrangler d1 execute preParena-db --local --file=src/scripts/sql/<name>.sql')
+console.log(`\nDone. ${total} total rows across 10 SQL files.`)
+console.log('Run each with: npx wrangler d1 execute preParena-db --remote --file=src/scripts/sql/<name>.sql')

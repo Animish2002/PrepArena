@@ -4,6 +4,11 @@ import { allOopsProblems, seedOops } from './seedOops'
 import { allSpringProblems, seedSpring } from './seedSpring'
 import { allSqlTheoryProblems, seedSqlTheory } from './seedSqlTheory'
 import { allSqlCodingProblems, seedSqlCoding } from './seedSqlCoding'
+import { allJavaScriptProblems, seedJavaScript } from './seedJavaScript'
+import { allReactProblems, seedReact } from './seedReact'
+import { allAngularProblems, seedAngular } from './seedAngular'
+import { allRxjsProblems, seedRxjs } from './seedRxjs'
+import { allSystemDesignProblems, seedSystemDesign } from './seedSystemDesign'
 
 export async function seedAll(d1: D1Database): Promise<void> {
   console.log('=== PrepArena Full Seed ===')
@@ -14,7 +19,12 @@ export async function seedAll(d1: D1Database): Promise<void> {
       allOopsProblems.length +
       allSpringProblems.length +
       allSqlTheoryProblems.length +
-      allSqlCodingProblems.length
+      allSqlCodingProblems.length +
+      allJavaScriptProblems.length +
+      allReactProblems.length +
+      allAngularProblems.length +
+      allRxjsProblems.length +
+      allSystemDesignProblems.length
     }`,
   )
   console.log('')
@@ -26,17 +36,31 @@ export async function seedAll(d1: D1Database): Promise<void> {
   const javaCount = await seedJava(d1)
   const oopsCount = await seedOops(d1)
   const springCount = await seedSpring(d1)
+  const jsCount = await seedJavaScript(d1)
+  const reactCount = await seedReact(d1)
+  const angularCount = await seedAngular(d1)
+  const rxjsCount = await seedRxjs(d1)
+  const sdCount = await seedSystemDesign(d1)
 
-  const total = allProblems.length + sqlCodingCount + sqlTheoryCount + javaCount + oopsCount + springCount
+  const total =
+    allProblems.length +
+    sqlCodingCount + sqlTheoryCount +
+    javaCount + oopsCount + springCount +
+    jsCount + reactCount + angularCount + rxjsCount + sdCount
 
   console.log('')
   console.log('=== Seed Summary ===')
-  console.log(`  DSA:         ${allProblems.length}`)
-  console.log(`  SQL Coding:  ${sqlCodingCount}`)
-  console.log(`  SQL Theory:  ${sqlTheoryCount}`)
-  console.log(`  Java:        ${javaCount}`)
-  console.log(`  OOPs:        ${oopsCount}`)
-  console.log(`  Spring Boot: ${springCount}`)
+  console.log(`  DSA:           ${allProblems.length}`)
+  console.log(`  SQL Coding:    ${sqlCodingCount}`)
+  console.log(`  SQL Theory:    ${sqlTheoryCount}`)
+  console.log(`  Java:          ${javaCount}`)
+  console.log(`  OOPs:          ${oopsCount}`)
+  console.log(`  Spring Boot:   ${springCount}`)
+  console.log(`  JavaScript:    ${jsCount}`)
+  console.log(`  React:         ${reactCount}`)
+  console.log(`  Angular:       ${angularCount}`)
+  console.log(`  RxJS:          ${rxjsCount}`)
+  console.log(`  System Design: ${sdCount}`)
   console.log(`  ─────────────────`)
   console.log(`  Total inserted: ${total}`)
 }

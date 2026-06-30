@@ -19,6 +19,10 @@ import {
   IconServer,
   IconBulb,
   IconCheck,
+  IconBrandReact,
+  IconBrandAngular,
+  IconBrandJavascript,
+  IconBolt,
 } from '@tabler/icons-react'
 import { useProgressStore, type Problem } from '../store/progressStore'
 import TopicSidebar from '../components/problems/TopicSidebar'
@@ -33,12 +37,16 @@ const DIFFICULTIES = ['All', 'Easy', 'Medium', 'Hard'] as const
 type Difficulty = (typeof DIFFICULTIES)[number]
 
 const SUBJECTS = [
-  { id: 'dsa',           label: 'DSA',          Icon: IconBinaryTree },
-  { id: 'sql',           label: 'SQL',           Icon: IconDatabase   },
-  { id: 'java',          label: 'Java',          Icon: IconCoffee     },
-  { id: 'oops',          label: 'OOPs',          Icon: IconCube       },
-  { id: 'spring-boot',   label: 'Spring Boot',   Icon: IconLeaf       },
-  { id: 'system-design', label: 'System Design', Icon: IconServer     },
+  { id: 'dsa',           label: 'DSA',          Icon: IconBinaryTree     },
+  { id: 'sql',           label: 'SQL',           Icon: IconDatabase       },
+  { id: 'java',          label: 'Java',          Icon: IconCoffee         },
+  { id: 'oops',          label: 'OOPs',          Icon: IconCube           },
+  { id: 'spring-boot',   label: 'Spring Boot',   Icon: IconLeaf           },
+  { id: 'system-design', label: 'System Design', Icon: IconServer         },
+  { id: 'javascript',    label: 'JavaScript',    Icon: IconBrandJavascript},
+  { id: 'react',         label: 'React',         Icon: IconBrandReact     },
+  { id: 'angular',       label: 'Angular',       Icon: IconBrandAngular   },
+  { id: 'rxjs',          label: 'RxJS',          Icon: IconBolt           },
 ] as const
 
 // question types available per subject (in display order)
@@ -48,7 +56,11 @@ const SUBJECT_TYPES: Record<string, { id: string; label: string }[]> = {
   java:           [{ id: 'theory',  label: 'Theory'     }, { id: 'mcq',    label: 'MCQ'    }],
   oops:           [{ id: 'theory',  label: 'Theory'     }, { id: 'mcq',    label: 'MCQ'    }],
   'spring-boot':  [{ id: 'theory',  label: 'Theory'     }],
-  'system-design':[{ id: 'theory',  label: 'Theory'     }],
+  'system-design':[{ id: 'theory',  label: 'Theory'     }, { id: 'mcq',    label: 'MCQ'    }],
+  javascript:     [{ id: 'theory',  label: 'Theory'     }, { id: 'mcq',    label: 'MCQ'    }],
+  react:          [{ id: 'theory',  label: 'Theory'     }, { id: 'mcq',    label: 'MCQ'    }],
+  angular:        [{ id: 'theory',  label: 'Theory'     }, { id: 'mcq',    label: 'MCQ'    }],
+  rxjs:           [{ id: 'theory',  label: 'Theory'     }, { id: 'mcq',    label: 'MCQ'    }],
 }
 
 const DIFF_BADGE: Record<string, string> = {
