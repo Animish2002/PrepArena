@@ -17,14 +17,24 @@ router.get('/', authMiddleware, async (c) => {
   const difficulty = c.req.query('difficulty')
   const platform = c.req.query('platform')
   const search = c.req.query('search')
+  const subject = c.req.query('subject')       // 'dsa' | 'sql' | 'java' | 'oops' | 'spring-boot' | 'all'
+  const questionType = c.req.query('question_type') // 'coding' | 'sql' | 'theory' | 'mcq' | 'all'
+  const sheet = c.req.query('sheet')           // e.g. 'leetcode-sql-50'
   const page = Math.max(1, Number(c.req.query('page') ?? 1))
   const limit = Math.min(500, Math.max(1, Number(c.req.query('limit') ?? 50)))
+
+  // Include content field only when explicitly filtering for content-bearing types.
+  // For coding/sql the column is NULL anyway, but sparing the bandwidth for list views.
+  const includeContent = questionType === 'theory' || questionType === 'mcq'
 
   const where = and(
     topic ? eq(problems.topic, topic) : undefined,
     difficulty ? eq(problems.difficulty, difficulty) : undefined,
     platform ? eq(problems.platform, platform) : undefined,
     search ? like(problems.title, `%${search}%`) : undefined,
+    subject && subject !== 'all' ? eq(problems.subject, subject) : undefined,
+    questionType && questionType !== 'all' ? eq(problems.questionType, questionType) : undefined,
+    sheet ? eq(problems.sheet, sheet) : undefined,
   )
 
   const [[{ total }], rows] = await Promise.all([
@@ -42,6 +52,9 @@ router.get('/', authMiddleware, async (c) => {
         sheet: problems.sheet,
         problemNumber: problems.problemNumber,
         tags: problems.tags,
+        questionType: problems.questionType,
+        subject: problems.subject,
+        content: problems.content,
         userStatus: userProgress.status,
         userConfidence: userProgress.confidence,
         isBookmarked: bookmarks.problemId,
@@ -62,7 +75,28 @@ router.get('/', authMiddleware, async (c) => {
   ])
 
   return c.json({
-    problems: rows.map((r) => ({ ...r, isBookmarked: !!r.isBookmarked })),
+    problems: rows.map((r) => {
+      const { content, isBookmarked, ...rest } = r
+      const base = { ...rest, isBookmarked: !!isBookmarked }
+
+      if (!includeContent) return base
+
+      // MCQ: strip correct_index/explanation — only revealed after an attempt via /mcq-result
+      if (r.questionType === 'mcq' && content) {
+        try {
+          const parsed = JSON.parse(content) as {
+            question: string
+            options: string[]
+          }
+          return { ...base, content: { question: parsed.question, options: parsed.options } }
+        } catch {
+          return { ...base, content: null }
+        }
+      }
+
+      // Theory: return full markdown content
+      return { ...base, content }
+    }),
     total,
     page,
     limit,
@@ -99,8 +133,23 @@ router.get('/:id', authMiddleware, async (c) => {
       .limit(1),
   ])
 
+  // MCQ: return { question, options } only — correct_index exposed after attempt via /mcq-result
+  let safeContent: unknown = problem.content
+  if (problem.questionType === 'mcq' && problem.content) {
+    try {
+      const parsed = JSON.parse(problem.content) as {
+        question: string
+        options: string[]
+      }
+      safeContent = { question: parsed.question, options: parsed.options }
+    } catch {
+      safeContent = null
+    }
+  }
+
   return c.json({
     ...problem,
+    content: safeContent,
     progress: progress ?? null,
     notes: notes ?? null,
     isBookmarked: !!bookmark,

@@ -1,6 +1,11 @@
 import { create } from 'zustand'
 import api from '../lib/api'
 
+export interface McqContent {
+  question: string
+  options: string[]
+}
+
 export interface Problem {
   id: string
   title: string
@@ -15,6 +20,12 @@ export interface Problem {
   userStatus?: 'solved' | 'attempted' | null
   userConfidence?: number | null
   isBookmarked?: boolean
+  // Subject / type fields
+  questionType?: 'coding' | 'sql' | 'theory' | 'mcq' | null
+  subject?: string | null
+  sheet?: string | null
+  // For theory: markdown string; for MCQ: { question, options } object; for coding/sql: null
+  content?: string | McqContent | null
 }
 
 export interface UserProgress {
@@ -32,6 +43,18 @@ export interface TopicStat {
   avgConfidence: number | null
 }
 
+export interface SubjectStat {
+  solved?: number
+  total: number
+  avg_confidence?: number
+  coding_solved?: number
+  coding_total?: number
+  theory_solved?: number
+  theory_total?: number
+  mcq_correct_rate?: number
+  mcq_total?: number
+}
+
 export interface ProgressStats {
   solvedByDifficulty: { difficulty: string | null; solved: number }[]
   totalByDifficulty: { difficulty: string | null; total: number }[]
@@ -39,6 +62,14 @@ export interface ProgressStats {
   avgTimeByDifficulty: { difficulty: string | null; avgSeconds: string | null }[]
   confidenceDistribution: { confidence: number | null; count: number }[]
   interviewReadiness: number
+  overall_readiness?: number
+  subjects?: {
+    dsa: SubjectStat
+    sql: SubjectStat
+    java: SubjectStat
+    oops: SubjectStat
+    spring: SubjectStat
+  }
   xp: { total: number; weekly: number; monthly: number }
 }
 
@@ -60,6 +91,7 @@ interface ProgressState {
   ) => Promise<{ xp_gained: number; total_xp: number }>
   markAttempted: (problemId: string) => Promise<void>
   toggleBookmark: (problemId: string) => Promise<void>
+  updateMcqProgress: (problemId: string, isCorrect: boolean) => void
 }
 
 export const useProgressStore = create<ProgressState>((set, get) => ({
@@ -162,7 +194,6 @@ export const useProgressStore = create<ProgressState>((set, get) => ({
 
   toggleBookmark: async (problemId) => {
     const current = get().bookmarks[problemId] ?? false
-    // Optimistic update
     set((state) => ({ bookmarks: { ...state.bookmarks, [problemId]: !current } }))
     try {
       if (current) {
@@ -171,8 +202,28 @@ export const useProgressStore = create<ProgressState>((set, get) => ({
         await api.post(`/api/problems/${problemId}/bookmark`)
       }
     } catch {
-      // Revert on failure
       set((state) => ({ bookmarks: { ...state.bookmarks, [problemId]: current } }))
     }
+  },
+
+  updateMcqProgress: (problemId, isCorrect) => {
+    set((state) => {
+      const existing = state.userProgress[problemId]
+      if (isCorrect) {
+        return {
+          userProgress: {
+            ...state.userProgress,
+            [problemId]: { status: 'solved', confidence: existing?.confidence ?? 2 },
+          },
+        }
+      }
+      if (existing?.status === 'solved') return {}
+      return {
+        userProgress: {
+          ...state.userProgress,
+          [problemId]: { status: 'attempted' },
+        },
+      }
+    })
   },
 }))

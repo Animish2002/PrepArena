@@ -4,6 +4,7 @@ import { getDb } from '../db'
 import type { DB } from '../db'
 import {
   activityLog,
+  mcqAttempts,
   problems,
   revisionSchedule,
   solveSessions,
@@ -22,6 +23,7 @@ router.use('*', authMiddleware)
 
 const DAY = 86_400_000
 const XP_MAP: Record<string, number> = { easy: 10, medium: 25, hard: 50 }
+const MCQ_XP_MAP: Record<string, number> = { easy: 5, medium: 10, hard: 15 }
 const REVISION_DAYS = [1, 3, 7, 15, 30]
 
 function weekStart(ts: number): number {
@@ -67,6 +69,32 @@ async function scheduleRevisions(db: DB, userId: string, problemId: string, now:
   }
 }
 
+async function awardXp(db: DB, userId: string, xpGained: number): Promise<void> {
+  const ws = weekStart(Date.now())
+  const ms = monthStart(Date.now())
+
+  await db
+    .insert(userXp)
+    .values({
+      userId,
+      totalXp: xpGained,
+      weeklyXp: xpGained,
+      monthlyXp: xpGained,
+      weekStart: ws,
+      monthStart: ms,
+    })
+    .onConflictDoUpdate({
+      target: userXp.userId,
+      set: {
+        totalXp: sql`${userXp.totalXp} + ${xpGained}`,
+        weeklyXp: sql`CASE WHEN ${userXp.weekStart} = ${ws} THEN ${userXp.weeklyXp} + ${xpGained} ELSE ${xpGained} END`,
+        monthlyXp: sql`CASE WHEN ${userXp.monthStart} = ${ms} THEN ${userXp.monthlyXp} + ${xpGained} ELSE ${xpGained} END`,
+        weekStart: ws,
+        monthStart: ms,
+      },
+    })
+}
+
 // ─── POST /progress/:problemId/solve ─────────────────────────────────────────
 
 router.post('/:problemId/solve', async (c) => {
@@ -74,14 +102,19 @@ router.post('/:problemId/solve', async (c) => {
   const problemId = c.req.param('problemId')
   const body = await c.req.json<{
     confidence: 1 | 2 | 3 | 4
-    duration_seconds: number
-    started_at: number
+    duration_seconds?: number
+    started_at?: number
   }>()
   const db = getDb(c.env)
   const now = Date.now()
 
   const [problem] = await db.select().from(problems).where(eq(problems.id, problemId)).limit(1)
   if (!problem) return c.json({ error: 'Problem not found' }, 404)
+
+  // MCQs have their own route with streak-based confidence
+  if (problem.questionType === 'mcq') {
+    return c.json({ error: 'Use POST /progress/:problemId/mcq-attempt for MCQ problems' }, 400)
+  }
 
   // Upsert user_progress — preserve firstSolvedAt on conflict
   await db
@@ -106,47 +139,23 @@ router.post('/:problemId/solve', async (c) => {
       },
     })
 
-  // Insert solve session
-  await db.insert(solveSessions).values({
-    id: crypto.randomUUID(),
-    userId,
-    problemId,
-    startedAt: body.started_at,
-    endedAt: now,
-    durationSeconds: body.duration_seconds,
-  })
+  // Theory questions have no timer — skip solve session recording
+  if (problem.questionType !== 'theory' && body.duration_seconds != null && body.started_at != null) {
+    await db.insert(solveSessions).values({
+      id: crypto.randomUUID(),
+      userId,
+      problemId,
+      startedAt: body.started_at,
+      endedAt: now,
+      durationSeconds: body.duration_seconds,
+    })
+  }
 
-  // Schedule spaced-repetition revisions
   await scheduleRevisions(db, userId, problemId, now)
 
-  // Calculate XP for this solve
   const xpGained = XP_MAP[problem.difficulty ?? 'easy'] ?? 10
-  const ws = weekStart(now)
-  const ms = monthStart(now)
+  await awardXp(db, userId, xpGained)
 
-  // Upsert user_xp — auto-reset weekly/monthly if period has rolled over
-  await db
-    .insert(userXp)
-    .values({
-      userId,
-      totalXp: xpGained,
-      weeklyXp: xpGained,
-      monthlyXp: xpGained,
-      weekStart: ws,
-      monthStart: ms,
-    })
-    .onConflictDoUpdate({
-      target: userXp.userId,
-      set: {
-        totalXp: sql`${userXp.totalXp} + ${xpGained}`,
-        weeklyXp: sql`CASE WHEN ${userXp.weekStart} = ${ws} THEN ${userXp.weeklyXp} + ${xpGained} ELSE ${xpGained} END`,
-        monthlyXp: sql`CASE WHEN ${userXp.monthStart} = ${ms} THEN ${userXp.monthlyXp} + ${xpGained} ELSE ${xpGained} END`,
-        weekStart: ws,
-        monthStart: ms,
-      },
-    })
-
-  // Insert activity log
   await db.insert(activityLog).values({
     id: crypto.randomUUID(),
     userId,
@@ -155,16 +164,24 @@ router.post('/:problemId/solve', async (c) => {
       problem_title: problem.title,
       topic: problem.topic,
       difficulty: problem.difficulty,
-      duration_seconds: body.duration_seconds,
+      question_type: problem.questionType,
+      duration_seconds: body.duration_seconds ?? null,
     }),
     createdAt: now,
   })
 
-  const [xpRow] = await db.select({ totalXp: userXp.totalXp }).from(userXp).where(eq(userXp.userId, userId)).limit(1)
+  const [xpRow] = await db
+    .select({ totalXp: userXp.totalXp })
+    .from(userXp)
+    .where(eq(userXp.userId, userId))
+    .limit(1)
 
-  // Side-effect: update weekly challenge progress if this problem is in the active challenge
   const challengeUpdate = await maybeUpdateChallengeProgress(
-    db, c.env, userId, problemId, body.duration_seconds,
+    db,
+    c.env,
+    userId,
+    problemId,
+    body.duration_seconds ?? 0,
   ).catch(() => null)
 
   return c.json({
@@ -214,76 +231,354 @@ router.post('/:problemId/attempt', async (c) => {
   return c.json({ success: true, status: 'attempted' })
 })
 
+// ─── POST /progress/:problemId/mcq-attempt ───────────────────────────────────
+
+router.post('/:problemId/mcq-attempt', async (c) => {
+  const userId = c.get('userId')
+  const problemId = c.req.param('problemId')
+  const { selected_index } = await c.req.json<{ selected_index: number }>()
+  const db = getDb(c.env)
+  const now = Date.now()
+
+  const [problem] = await db.select().from(problems).where(eq(problems.id, problemId)).limit(1)
+  if (!problem) return c.json({ error: 'Problem not found' }, 404)
+  if (problem.questionType !== 'mcq') return c.json({ error: 'Not an MCQ problem' }, 400)
+
+  let correctIndex: number
+  let explanation: string
+  try {
+    const parsed = JSON.parse(problem.content ?? '{}') as {
+      correct_index: number
+      explanation?: string
+    }
+    correctIndex = parsed.correct_index
+    explanation = parsed.explanation ?? ''
+  } catch {
+    return c.json({ error: 'Invalid MCQ content' }, 500)
+  }
+
+  const isCorrect = selected_index === correctIndex
+
+  // Always record the attempt first so the streak query below sees it
+  await db.insert(mcqAttempts).values({
+    id: crypto.randomUUID(),
+    userId,
+    problemId,
+    selectedIndex: selected_index,
+    isCorrect: isCorrect ? 1 : 0,
+    attemptedAt: now,
+  })
+
+  if (isCorrect) {
+    // Count consecutive correct attempts (descending) to determine confidence tier
+    const recent = await db
+      .select({ isCorrect: mcqAttempts.isCorrect })
+      .from(mcqAttempts)
+      .where(and(eq(mcqAttempts.userId, userId), eq(mcqAttempts.problemId, problemId)))
+      .orderBy(desc(mcqAttempts.attemptedAt))
+      .limit(10)
+
+    let streak = 0
+    for (const a of recent) {
+      if (a.isCorrect === 1) streak++
+      else break
+    }
+
+    // 1 correct = 2, 3 in a row = 3, 5+ in a row = 4
+    const confidence: 2 | 3 | 4 = streak >= 5 ? 4 : streak >= 3 ? 3 : 2
+
+    await db
+      .insert(userProgress)
+      .values({
+        id: crypto.randomUUID(),
+        userId,
+        problemId,
+        status: 'solved',
+        confidence,
+        attempts: 1,
+        firstSolvedAt: now,
+        lastSolvedAt: now,
+      })
+      .onConflictDoUpdate({
+        target: [userProgress.userId, userProgress.problemId],
+        set: {
+          status: 'solved',
+          confidence,
+          attempts: sql`${userProgress.attempts} + 1`,
+          lastSolvedAt: now,
+        },
+      })
+
+    await scheduleRevisions(db, userId, problemId, now)
+
+    const xpGained = MCQ_XP_MAP[problem.difficulty ?? 'easy'] ?? 5
+    await awardXp(db, userId, xpGained)
+
+    await db.insert(activityLog).values({
+      id: crypto.randomUUID(),
+      userId,
+      type: 'solved',
+      payload: JSON.stringify({
+        problem_title: problem.title,
+        topic: problem.topic,
+        difficulty: problem.difficulty,
+        question_type: 'mcq',
+      }),
+      createdAt: now,
+    })
+
+    return c.json({ is_correct: true, correct_index: correctIndex, explanation, xp_gained: xpGained })
+  }
+
+  // Wrong answer — mark attempted, but never downgrade a previously solved row
+  await db
+    .insert(userProgress)
+    .values({
+      id: crypto.randomUUID(),
+      userId,
+      problemId,
+      status: 'attempted',
+      attempts: 1,
+      firstSolvedAt: null,
+      lastSolvedAt: null,
+    })
+    .onConflictDoUpdate({
+      target: [userProgress.userId, userProgress.problemId],
+      set: {
+        attempts: sql`${userProgress.attempts} + 1`,
+        status: sql`CASE WHEN ${userProgress.status} = 'solved' THEN 'solved' ELSE 'attempted' END`,
+      },
+    })
+
+  return c.json({ is_correct: false, correct_index: correctIndex, explanation, xp_gained: null })
+})
+
 // ─── GET /progress/stats ──────────────────────────────────────────────────────
 
 router.get('/stats', async (c) => {
   const userId = c.get('userId')
   const db = getDb(c.env)
 
-  const [solvedByDiff, totalByDiff, avgTimeByDiff, topicBreakdown, confidenceDist, xpRow] =
-    await Promise.all([
-      // Solved count per difficulty
-      db
-        .select({ difficulty: problems.difficulty, solved: count() })
-        .from(userProgress)
-        .innerJoin(problems, eq(userProgress.problemId, problems.id))
-        .where(and(eq(userProgress.userId, userId), eq(userProgress.status, 'solved')))
-        .groupBy(problems.difficulty),
+  const [
+    solvedByDiff,
+    totalByDiff,
+    avgTimeByDiff,
+    topicBreakdown,
+    confidenceDist,
+    xpRow,
+    subjectSolvedByType,
+    subjectTotalsByType,
+    mcqStatsBySubject,
+    dsaConfRow,
+  ] = await Promise.all([
+    // Solved count per difficulty
+    db
+      .select({ difficulty: problems.difficulty, solved: count() })
+      .from(userProgress)
+      .innerJoin(problems, eq(userProgress.problemId, problems.id))
+      .where(and(eq(userProgress.userId, userId), eq(userProgress.status, 'solved')))
+      .groupBy(problems.difficulty),
 
-      // Total problems per difficulty
-      db
-        .select({ difficulty: problems.difficulty, total: count() })
-        .from(problems)
-        .groupBy(problems.difficulty),
+    // Total problems per difficulty
+    db
+      .select({ difficulty: problems.difficulty, total: count() })
+      .from(problems)
+      .groupBy(problems.difficulty),
 
-      // Avg solve time per difficulty
-      db
-        .select({
-          difficulty: problems.difficulty,
-          avgSeconds: avg(solveSessions.durationSeconds),
-        })
-        .from(solveSessions)
-        .innerJoin(problems, eq(solveSessions.problemId, problems.id))
-        .where(eq(solveSessions.userId, userId))
-        .groupBy(problems.difficulty),
+    // Avg solve time per difficulty (coding/sql only — theory has no sessions)
+    db
+      .select({
+        difficulty: problems.difficulty,
+        avgSeconds: avg(solveSessions.durationSeconds),
+      })
+      .from(solveSessions)
+      .innerJoin(problems, eq(solveSessions.problemId, problems.id))
+      .where(eq(solveSessions.userId, userId))
+      .groupBy(problems.difficulty),
 
-      // Topic breakdown: solved vs total, avg confidence
-      db
-        .select({
-          topic: problems.topic,
-          total: count(problems.id),
-          solved: count(userProgress.id),
-          avgConfidence: avg(userProgress.confidence),
-        })
-        .from(problems)
-        .leftJoin(
-          userProgress,
-          and(
-            eq(userProgress.problemId, problems.id),
-            eq(userProgress.userId, userId),
-            eq(userProgress.status, 'solved'),
-          ),
-        )
-        .groupBy(problems.topic),
+    // Topic breakdown: solved vs total, avg confidence
+    db
+      .select({
+        topic: problems.topic,
+        total: count(problems.id),
+        solved: count(userProgress.id),
+        avgConfidence: avg(userProgress.confidence),
+      })
+      .from(problems)
+      .leftJoin(
+        userProgress,
+        and(
+          eq(userProgress.problemId, problems.id),
+          eq(userProgress.userId, userId),
+          eq(userProgress.status, 'solved'),
+        ),
+      )
+      .groupBy(problems.topic),
 
-      // Confidence distribution
-      db
-        .select({ confidence: userProgress.confidence, count: count() })
-        .from(userProgress)
-        .where(and(eq(userProgress.userId, userId), eq(userProgress.status, 'solved')))
-        .groupBy(userProgress.confidence),
+    // Confidence distribution
+    db
+      .select({ confidence: userProgress.confidence, count: count() })
+      .from(userProgress)
+      .where(and(eq(userProgress.userId, userId), eq(userProgress.status, 'solved')))
+      .groupBy(userProgress.confidence),
 
-      // XP totals
-      db.select().from(userXp).where(eq(userXp.userId, userId)).limit(1),
-    ])
+    // XP totals
+    db.select().from(userXp).where(eq(userXp.userId, userId)).limit(1),
 
-  // Interview readiness: weighted avg confidence across solved problems, scaled 0-100
+    // Subject + questionType → solved count
+    db
+      .select({
+        subject: problems.subject,
+        questionType: problems.questionType,
+        solved: count(),
+      })
+      .from(userProgress)
+      .innerJoin(problems, eq(userProgress.problemId, problems.id))
+      .where(and(eq(userProgress.userId, userId), eq(userProgress.status, 'solved')))
+      .groupBy(problems.subject, problems.questionType),
+
+    // Subject + questionType → total count
+    db
+      .select({
+        subject: problems.subject,
+        questionType: problems.questionType,
+        total: count(),
+      })
+      .from(problems)
+      .groupBy(problems.subject, problems.questionType),
+
+    // MCQ attempt stats per subject: total attempts + correct count
+    db
+      .select({
+        subject: problems.subject,
+        totalAttempts: count(),
+        correctAttempts: sql<number>`SUM(CASE WHEN ${mcqAttempts.isCorrect} = 1 THEN 1 ELSE 0 END)`,
+      })
+      .from(mcqAttempts)
+      .innerJoin(problems, eq(mcqAttempts.problemId, problems.id))
+      .where(eq(mcqAttempts.userId, userId))
+      .groupBy(problems.subject),
+
+    // DSA avg confidence for readiness score
+    db
+      .select({ avgConf: avg(userProgress.confidence) })
+      .from(userProgress)
+      .innerJoin(problems, eq(userProgress.problemId, problems.id))
+      .where(
+        and(
+          eq(userProgress.userId, userId),
+          eq(userProgress.status, 'solved'),
+          eq(problems.subject, 'dsa'),
+        ),
+      ),
+  ])
+
+  // ── Assemble subject breakdown ──────────────────────────────────────────────
+
+  // Build lookup maps from the query results
+  const solvedMap = new Map<string, number>()
+  for (const r of subjectSolvedByType) {
+    solvedMap.set(`${r.subject}:${r.questionType}`, r.solved)
+  }
+  const totalMap = new Map<string, number>()
+  for (const r of subjectTotalsByType) {
+    totalMap.set(`${r.subject}:${r.questionType}`, r.total)
+  }
+  const mcqMap = new Map<string, { total: number; correct: number }>()
+  for (const r of mcqStatsBySubject) {
+    mcqMap.set(r.subject ?? '', {
+      total: r.totalAttempts,
+      correct: Number(r.correctAttempts ?? 0),
+    })
+  }
+
+  function get(subject: string, qtype: string, map: Map<string, number>): number {
+    return map.get(`${subject}:${qtype}`) ?? 0
+  }
+
+  function mcqCorrectRate(subject: string): number {
+    const m = mcqMap.get(subject)
+    if (!m || m.total === 0) return 0
+    return Math.round((m.correct / m.total) * 100) / 100
+  }
+
+  function subjectStats(subj: string) {
+    const theoryTotal = get(subj, 'theory', totalMap)
+    const mcqTotal = get(subj, 'mcq', totalMap)
+    return {
+      theory_solved: get(subj, 'theory', solvedMap),
+      theory_total: theoryTotal,
+      mcq_correct_rate: mcqCorrectRate(subj),
+      mcq_total: mcqTotal,
+      total: theoryTotal + mcqTotal,
+    }
+  }
+
+  const dsaSolved = get('dsa', 'coding', solvedMap)
+  const dsaTotal = get('dsa', 'coding', totalMap)
+  const dsaAvgConf = Number(dsaConfRow[0]?.avgConf ?? 1)
+
+  const sqlCodingSolved = get('sql', 'sql', solvedMap)
+  const sqlCodingTotal = get('sql', 'sql', totalMap)
+  const sqlTheorySolved = get('sql', 'theory', solvedMap)
+  const sqlTheoryTotal = get('sql', 'theory', totalMap)
+
+  const subjects = {
+    dsa: {
+      solved: dsaSolved,
+      total: dsaTotal,
+      avg_confidence: Math.round(dsaAvgConf * 100) / 100,
+    },
+    sql: {
+      coding_solved: sqlCodingSolved,
+      coding_total: sqlCodingTotal,
+      theory_solved: sqlTheorySolved,
+      theory_total: sqlTheoryTotal,
+      total: sqlCodingTotal + sqlTheoryTotal,
+    },
+    java: subjectStats('java'),
+    oops: subjectStats('oops'),
+    spring: subjectStats('spring-boot'),
+  }
+
+  // ── Overall readiness (0-100) ───────────────────────────────────────────────
+
+  function pct(num: number, den: number): number {
+    return den > 0 ? Math.round((num / den) * 100) : 0
+  }
+
+  // DSA: weighted blend of completion % and avg confidence normalized to 0-100
+  const dsaConf100 = Math.round(((dsaAvgConf - 1) / 3) * 100)
+  const dsaReadiness = Math.round(pct(dsaSolved, dsaTotal) * 0.6 + dsaConf100 * 0.4)
+
+  const sqlReadiness = Math.round(
+    pct(sqlCodingSolved, sqlCodingTotal) * 0.65 +
+    pct(sqlTheorySolved, sqlTheoryTotal) * 0.35,
+  )
+
+  function subjectReadiness(subj: string): number {
+    const s = subjectStats(subj)
+    const theoryCompletion = pct(s.theory_solved, s.theory_total)
+    const mcqPct = Math.round(s.mcq_correct_rate * 100)
+    return Math.round(theoryCompletion * 0.5 + mcqPct * 0.5)
+  }
+
+  const overall_readiness = Math.round(
+    dsaReadiness * 0.40 +
+    sqlReadiness * 0.25 +
+    subjectReadiness('java') * 0.15 +
+    subjectReadiness('oops') * 0.12 +
+    subjectReadiness('spring-boot') * 0.08,
+  )
+
+  // ── Legacy DSA readiness (topic-weighted confidence) ───────────────────────
+
   let weightedConf = 0
   let totalSolved = 0
   for (const t of topicBreakdown) {
     const s = t.solved
-    const c = Number(t.avgConfidence ?? 1)
-    weightedConf += c * s
+    const conf = Number(t.avgConfidence ?? 1)
+    weightedConf += conf * s
     totalSolved += s
   }
   const interviewReadiness =
@@ -301,10 +596,58 @@ router.get('/stats', async (c) => {
     topicBreakdown,
     confidenceDistribution: confidenceDist,
     interviewReadiness,
+    subjects,
+    overall_readiness,
     xp: {
       total: xp?.totalXp ?? 0,
       weekly: xp?.weekStart === ws ? (xp?.weeklyXp ?? 0) : 0,
       monthly: xp?.monthStart === ms ? (xp?.monthlyXp ?? 0) : 0,
+    },
+  })
+})
+
+// ─── GET /progress/:problemId/mcq-result ─────────────────────────────────────
+
+router.get('/:problemId/mcq-result', async (c) => {
+  const userId = c.get('userId')
+  const problemId = c.req.param('problemId')
+  const db = getDb(c.env)
+
+  const [problem] = await db.select().from(problems).where(eq(problems.id, problemId)).limit(1)
+  if (!problem) return c.json({ error: 'Problem not found' }, 404)
+  if (problem.questionType !== 'mcq') return c.json({ error: 'Not an MCQ problem' }, 400)
+
+  const [lastAttempt] = await db
+    .select()
+    .from(mcqAttempts)
+    .where(and(eq(mcqAttempts.userId, userId), eq(mcqAttempts.problemId, problemId)))
+    .orderBy(desc(mcqAttempts.attemptedAt))
+    .limit(1)
+
+  if (!lastAttempt) {
+    return c.json({ error: 'No attempt found — submit an answer first' }, 404)
+  }
+
+  let correctIndex: number
+  let explanation: string
+  try {
+    const parsed = JSON.parse(problem.content ?? '{}') as {
+      correct_index: number
+      explanation?: string
+    }
+    correctIndex = parsed.correct_index
+    explanation = parsed.explanation ?? ''
+  } catch {
+    return c.json({ error: 'Invalid MCQ content' }, 500)
+  }
+
+  return c.json({
+    correct_index: correctIndex,
+    explanation,
+    user_attempt: {
+      selected_index: lastAttempt.selectedIndex,
+      is_correct: lastAttempt.isCorrect === 1,
+      attempted_at: lastAttempt.attemptedAt,
     },
   })
 })
@@ -326,6 +669,8 @@ router.get('/revisions/today', async (c) => {
       difficulty: problems.difficulty,
       platform: problems.platform,
       platformLink: problems.platformLink,
+      questionType: problems.questionType,
+      subject: problems.subject,
       confidence: userProgress.confidence,
       lastSolvedAt: userProgress.lastSolvedAt,
     })
@@ -357,7 +702,6 @@ router.get('/revisions/upcoming', async (c) => {
   const db = getDb(c.env)
 
   const now = Date.now()
-  // Today midnight UTC
   const todayMidnight = (() => {
     const d = new Date(now)
     d.setUTCHours(0, 0, 0, 0)
@@ -375,6 +719,8 @@ router.get('/revisions/upcoming', async (c) => {
       difficulty: problems.difficulty,
       platform: problems.platform,
       platformLink: problems.platformLink,
+      questionType: problems.questionType,
+      subject: problems.subject,
     })
     .from(revisionSchedule)
     .innerJoin(problems, eq(revisionSchedule.problemId, problems.id))
@@ -388,7 +734,6 @@ router.get('/revisions/upcoming', async (c) => {
     )
     .orderBy(revisionSchedule.dueDate)
 
-  // Group by YYYY-MM-DD date string
   type RevisionRow = (typeof rows)[number]
   const upcoming: Record<string, RevisionRow[]> = {}
   for (const row of rows) {
@@ -412,7 +757,6 @@ router.get('/activity-streak', async (c) => {
     .from(activityLog)
     .where(and(eq(activityLog.userId, userId), eq(activityLog.type, 'solved')))
 
-  // Unique YYYY-MM-DD strings
   const daySet = new Set(
     rows.map((r) => {
       const d = new Date(r.createdAt ?? 0)
@@ -432,7 +776,6 @@ router.get('/daily-mission', async (c) => {
   const db = getDb(c.env)
 
   const now = Date.now()
-  // Floor to start of today (UTC midnight)
   const todayStart = (() => {
     const d = new Date(now)
     d.setUTCHours(0, 0, 0, 0)
@@ -440,7 +783,6 @@ router.get('/daily-mission', async (c) => {
   })()
 
   const [easyRow, mediumRow, revisionRow] = await Promise.all([
-    // Count easy problems solved today
     db
       .select({ cnt: sql<number>`COUNT(*)` })
       .from(solveSessions)
@@ -452,8 +794,6 @@ router.get('/daily-mission', async (c) => {
           gte(solveSessions.startedAt, todayStart),
         ),
       ),
-
-    // Count medium problems solved today
     db
       .select({ cnt: sql<number>`COUNT(*)` })
       .from(solveSessions)
@@ -465,8 +805,6 @@ router.get('/daily-mission', async (c) => {
           gte(solveSessions.startedAt, todayStart),
         ),
       ),
-
-    // Count revisions from activity log today
     db
       .select({ cnt: sql<number>`COUNT(*)` })
       .from(activityLog)

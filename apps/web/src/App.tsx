@@ -14,6 +14,7 @@ import ProfilePage from './pages/Profile'
 import GroupsPage from './pages/Groups'
 import ChallengePage from './pages/ChallengePage'
 import ChatPage from './pages/ChatPage'
+import SubjectPage from './pages/SubjectPage'
 import JoinPage from './pages/Join'
 import AuthCallback from './pages/AuthCallback'
 import { useAuthStore } from './store/authStore'
@@ -59,6 +60,7 @@ export default function App() {
             <Route path="/groups" element={<GroupsPage />} />
             <Route path="/challenges" element={<ChallengePage />} />
             <Route path="/chat" element={<ChatPage />} />
+            <Route path="/subject/:subject" element={<SubjectPage />} />
           </Route>
 
           <Route path="*" element={<Navigate to="/dashboard" replace />} />

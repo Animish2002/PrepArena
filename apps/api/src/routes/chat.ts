@@ -136,7 +136,7 @@ router.get('/conversations/:conversationId/messages', authMiddleware, async (c) 
       .limit(1)
     if (cursor) {
       query = query.where(
-        and(eq(messages.conversationId, conversationId), lt(messages.sentAt, cursor.sentAt)),
+        and(eq(messages.conversationId, conversationId), lt(messages.sentAt, cursor.sentAt ?? 0)),
       )
     }
   }

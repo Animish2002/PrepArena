@@ -373,7 +373,7 @@ router.get('/pending', authMiddleware, async (c) => {
     LEFT JOIN users opp  ON opp.id  = b.opponent_id
     WHERE b.status = 'pending'
       AND (b.challenger_id = ? OR b.opponent_id = ?)
-    ORDER BY rowid DESC
+    ORDER BY b.rowid DESC
   `).bind(userId, userId).all<{
     id: string
     challenger_id: string; opponent_id: string

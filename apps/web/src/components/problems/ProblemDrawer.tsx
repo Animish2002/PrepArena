@@ -14,6 +14,7 @@ import {
 import { useProgressStore, type Problem } from '../../store/progressStore'
 import { useSolveTimer, formatElapsed } from '../../hooks/useSolveTimer'
 import { useFeedStore } from '../../store/feedStore'
+import TheoryContent from './TheoryContent'
 import api from '../../lib/api'
 
 interface ProblemDrawerProps {
@@ -24,7 +25,7 @@ interface ProblemDrawerProps {
   onSolve?: (problemId: string, xpGained: number) => void
 }
 
-type Phase = 'idle' | 'timing' | 'confidence' | 'success'
+type Phase = 'idle' | 'timing' | 'theory' | 'confidence' | 'success'
 
 const CONFIDENCE_OPTIONS = [
   { value: 1, emoji: '😕', label: "Didn't get it", desc: 'Need to revisit the approach' },
@@ -158,6 +159,8 @@ export default function ProblemDrawer({
   const { markSolved, markAttempted, bookmarks, toggleBookmark, userProgress } = useProgressStore()
   const { startTimer, stopTimer, resetTimer, elapsed, isRunning } = useSolveTimer()
 
+  const isTheory = problem?.questionType === 'theory'
+
   const [phase, setPhase] = useState<Phase>('idle')
   const [selectedConfidence, setSelectedConfidence] = useState<number | null>(null)
   const [xpGained, setXpGained] = useState(0)
@@ -165,32 +168,43 @@ export default function ProblemDrawer({
   const [notesSaved, setNotesSaved] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [showShare, setShowShare] = useState(false)
+  const [theoryContent, setTheoryContent] = useState<string>('')
+  const [showFullContent, setShowFullContent] = useState(false)
 
   const timerResultRef = useRef<{ started_at: number; duration_seconds: number } | null>(null)
   const notesTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
 
-  // Reset state when problem changes
   useEffect(() => {
     if (!problem) return
-    setPhase('idle')
+    setPhase(isTheory ? 'theory' : 'idle')
     setSelectedConfidence(null)
     setNotesSaved(false)
     setXpGained(0)
+    setShowFullContent(false)
     resetTimer()
     timerResultRef.current = null
 
-    // Check if timer was running for this problem (resume after navigation)
-    const saved = sessionStorage.getItem(`preparena_timer_${problem.id}`)
-    if (saved) {
-      startTimer(problem.id)
-      setPhase('timing')
+    if (isTheory) {
+      // Fetch full problem to get content + notes
+      api
+        .get<{ content?: string; notes?: { content: string } | null }>(`/api/problems/${problem.id}`)
+        .then((r) => {
+          setTheoryContent(r.data.content ?? '')
+          setNotes(r.data.notes?.content ?? '')
+        })
+        .catch(() => {})
+    } else {
+      // Coding: check if timer was running (resume after navigation)
+      const saved = sessionStorage.getItem(`preparena_timer_${problem.id}`)
+      if (saved) {
+        startTimer(problem.id)
+        setPhase('timing')
+      }
+      api
+        .get<{ notes: { content: string } | null }>(`/api/problems/${problem.id}`)
+        .then((r) => setNotes(r.data.notes?.content ?? ''))
+        .catch(() => {})
     }
-
-    // Fetch existing notes
-    api
-      .get<{ notes: { content: string } | null }>(`/api/problems/${problem.id}`)
-      .then((r) => setNotes(r.data.notes?.content ?? ''))
-      .catch(() => {})
   }, [problem?.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleOpenProblem = () => {
@@ -204,6 +218,11 @@ export default function ProblemDrawer({
   const handleMarkSolved = () => {
     const result = stopTimer()
     timerResultRef.current = result
+    setPhase('confidence')
+  }
+
+  const handleMarkUnderstood = () => {
+    timerResultRef.current = { started_at: Date.now(), duration_seconds: 0 }
     setPhase('confidence')
   }
 
@@ -321,6 +340,11 @@ export default function ProblemDrawer({
                 <span className="text-xs text-(--color-text-secondary) bg-(--color-bg) px-2 py-0.5 rounded-full">
                   {problem.topic}
                 </span>
+                {isTheory && (
+                  <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-blue-500/15 text-blue-500">
+                    Theory
+                  </span>
+                )}
                 {problem.estimatedMinutes && (
                   <span className="flex items-center gap-1 text-xs text-(--color-text-secondary)">
                     <IconClock size={12} />
@@ -339,7 +363,45 @@ export default function ProblemDrawer({
             {/* ── Scrollable body ────────────────────────────────────────────── */}
             <div className="flex-1 overflow-y-auto p-4 space-y-6">
 
-              {/* Phase: idle */}
+              {/* ── THEORY phase ────────────────────────────────────────────── */}
+              {phase === 'theory' && (
+                <div className="space-y-4">
+                  {theoryContent ? (
+                    <>
+                      <div
+                        className={`relative overflow-hidden transition-all ${
+                          showFullContent ? '' : 'max-h-72'
+                        }`}
+                      >
+                        <TheoryContent content={theoryContent} />
+                        {!showFullContent && theoryContent.length > 800 && (
+                          <div className="absolute bottom-0 inset-x-0 h-12 bg-gradient-to-t from-(--color-surface) to-transparent pointer-events-none" />
+                        )}
+                      </div>
+                      {!showFullContent && theoryContent.length > 800 && (
+                        <button
+                          onClick={() => setShowFullContent(true)}
+                          className="text-xs text-(--color-accent) hover:underline"
+                        >
+                          Show more ↓
+                        </button>
+                      )}
+                      <button
+                        onClick={handleMarkUnderstood}
+                        className="w-full py-2.5 rounded-xl bg-emerald-500 text-white text-sm font-semibold hover:opacity-90 transition-opacity"
+                      >
+                        Mark as Understood
+                      </button>
+                    </>
+                  ) : (
+                    <div className="flex items-center justify-center py-12">
+                      <IconLoader2 size={24} className="animate-spin text-(--color-text-secondary)" />
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* ── IDLE phase (coding) ─────────────────────────────────────── */}
               {phase === 'idle' && (
                 <div className="space-y-3">
                   <p className="text-sm text-(--color-text-secondary)">
@@ -364,10 +426,9 @@ export default function ProblemDrawer({
                 </div>
               )}
 
-              {/* Phase: timing */}
+              {/* ── TIMING phase ────────────────────────────────────────────── */}
               {phase === 'timing' && (
                 <div className="space-y-4">
-                  {/* Timer display */}
                   <div className="flex flex-col items-center py-6 bg-(--color-bg) rounded-2xl border border-(--color-border)">
                     <p className="text-xs text-(--color-text-secondary) mb-1 uppercase tracking-wider font-medium">
                       Time elapsed
@@ -398,19 +459,23 @@ export default function ProblemDrawer({
                 </div>
               )}
 
-              {/* Phase: confidence */}
+              {/* ── CONFIDENCE phase ────────────────────────────────────────── */}
               {phase === 'confidence' && (
                 <div className="space-y-4">
                   <div className="text-center">
-                    <p className="text-lg font-bold text-(--color-text-primary)">You did it! 🎉</p>
-                    <p className="text-sm text-(--color-text-secondary) mt-1">
-                      Solved in{' '}
-                      <span className="font-semibold text-(--color-text-primary)">
-                        {formatElapsed(timerResultRef.current?.duration_seconds ?? 0)}
-                      </span>
+                    <p className="text-lg font-bold text-(--color-text-primary)">
+                      {isTheory ? 'How well do you know this? 📚' : 'You did it! 🎉'}
                     </p>
+                    {!isTheory && timerResultRef.current && (
+                      <p className="text-sm text-(--color-text-secondary) mt-1">
+                        Solved in{' '}
+                        <span className="font-semibold text-(--color-text-primary)">
+                          {formatElapsed(timerResultRef.current.duration_seconds)}
+                        </span>
+                      </p>
+                    )}
                     <p className="text-sm text-(--color-text-secondary) mt-3">
-                      How confident do you feel?
+                      {isTheory ? 'Rate your understanding:' : 'How confident do you feel?'}
                     </p>
                   </div>
 
@@ -446,7 +511,7 @@ export default function ProblemDrawer({
                 </div>
               )}
 
-              {/* Phase: success */}
+              {/* ── SUCCESS phase ───────────────────────────────────────────── */}
               {phase === 'success' && (
                 <div className="flex flex-col items-center justify-center py-12 gap-4">
                   <motion.div
@@ -465,7 +530,9 @@ export default function ProblemDrawer({
                     className="flex flex-col items-center gap-1"
                   >
                     <span className="text-3xl">🎊</span>
-                    <p className="text-sm text-(--color-text-secondary)">Problem marked solved!</p>
+                    <p className="text-sm text-(--color-text-secondary)">
+                      {isTheory ? 'Marked as understood!' : 'Problem marked solved!'}
+                    </p>
                   </motion.div>
                 </div>
               )}
