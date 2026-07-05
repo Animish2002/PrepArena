@@ -942,7 +942,7 @@ export default function ChatPage() {
         }
       `}</style>
 
-      <div className="flex h-[calc(100vh-60px)] overflow-hidden">
+      <div className="flex h-full overflow-hidden">
         {leftPanel}
         {rightPanel}
       </div>

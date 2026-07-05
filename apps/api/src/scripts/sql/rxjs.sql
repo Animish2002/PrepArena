@@ -1,6 +1,6 @@
 -- PrepArena seed: RxJS Theory + MCQ
 -- Problems: 15
--- Generated: 2026-06-30T16:42:46.268Z
+-- Generated: 2026-07-05T17:05:49.115Z
 -- Apply (local):  npx wrangler d1 execute preParena-db --local  --file=src/scripts/sql/rxjs.sql
 -- Apply (remote): npx wrangler d1 execute preParena-db --remote --file=src/scripts/sql/rxjs.sql
 INSERT OR IGNORE INTO problems (id, title, topic, subtopic, difficulty, platform, platform_link, estimated_minutes, sheet, problem_number, tags, question_type, subject, content, content_source) VALUES ('rxjs-theory-001', 'RxJS Core Concepts — Observable, Observer & Subscription', 'RxJS Basics', NULL, 'easy', NULL, NULL, 10, 'RxJS Basics', NULL, '["RxJS Basics","rxjs"]', 'theory', 'rxjs', '

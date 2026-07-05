@@ -17,6 +17,7 @@ import ChatPage from './pages/ChatPage'
 import SubjectPage from './pages/SubjectPage'
 import JoinPage from './pages/Join'
 import AuthCallback from './pages/AuthCallback'
+import LandingPage from './pages/Landing'
 import { useAuthStore } from './store/authStore'
 
 // After auth completes, check if the user was trying to accept a friend invite
@@ -43,6 +44,7 @@ export default function App() {
       <BrowserRouter>
         <PendingJoinRedirect />
         <Routes>
+          <Route path="/" element={<LandingPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/auth/callback" element={<AuthCallback />} />
           <Route path="/join/:token" element={<JoinPage />} />

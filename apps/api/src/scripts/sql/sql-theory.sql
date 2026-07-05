@@ -1,6 +1,6 @@
 -- PrepArena seed: SQL Theory
 -- Problems: 30
--- Generated: 2026-06-30T16:42:46.265Z
+-- Generated: 2026-07-05T17:05:49.113Z
 -- Apply (local):  npx wrangler d1 execute preParena-db --local  --file=src/scripts/sql/sql-theory.sql
 -- Apply (remote): npx wrangler d1 execute preParena-db --remote --file=src/scripts/sql/sql-theory.sql
 INSERT OR IGNORE INTO problems (id, title, topic, subtopic, difficulty, platform, platform_link, estimated_minutes, sheet, problem_number, tags, question_type, subject, content, content_source) VALUES ('sql-theory-001', 'What is the difference between DDL, DML, DCL, and TCL in SQL?', 'SQL Basics', 'SQL Categories', 'easy', NULL, NULL, 5, 'leetcode-sql-50', 1, '["DDL","DML","DCL","TCL"]', 'theory', 'sql', '## SQL Command Categories

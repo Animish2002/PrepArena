@@ -23,9 +23,9 @@ router.get('/', authMiddleware, async (c) => {
   const page = Math.max(1, Number(c.req.query('page') ?? 1))
   const limit = Math.min(500, Math.max(1, Number(c.req.query('limit') ?? 50)))
 
-  // Include content field only when explicitly filtering for content-bearing types.
-  // For coding/sql the column is NULL anyway, but sparing the bandwidth for list views.
-  const includeContent = questionType === 'theory' || questionType === 'mcq'
+  // Theory content (markdown) is large — only include it when explicitly filtering for theory.
+  // MCQ content is always included (small JSON) so the modal works from the "All" view too.
+  const includeTheoryContent = questionType === 'theory'
 
   const where = and(
     topic ? eq(problems.topic, topic) : undefined,
@@ -79,23 +79,23 @@ router.get('/', authMiddleware, async (c) => {
       const { content, isBookmarked, ...rest } = r
       const base = { ...rest, isBookmarked: !!isBookmarked }
 
-      if (!includeContent) return base
-
-      // MCQ: strip correct_index/explanation — only revealed after an attempt via /mcq-result
+      // MCQ: always parse and include { question, options } — strip correct_index/explanation
       if (r.questionType === 'mcq' && content) {
         try {
-          const parsed = JSON.parse(content) as {
-            question: string
-            options: string[]
-          }
+          const parsed = JSON.parse(content) as { question: string; options: string[] }
           return { ...base, content: { question: parsed.question, options: parsed.options } }
         } catch {
           return { ...base, content: null }
         }
       }
 
-      // Theory: return full markdown content
-      return { ...base, content }
+      // Theory: only include full markdown when explicitly filtering for theory (content is large)
+      if (r.questionType === 'theory' && includeTheoryContent) {
+        return { ...base, content }
+      }
+
+      // Coding/SQL and unfiltered theory: omit content
+      return base
     }),
     total,
     page,

@@ -44,9 +44,11 @@ export default function AppLayout() {
 
         <main
           className={`flex-1 ${
-            location.pathname.startsWith('/problems') || location.pathname.startsWith('/battles/')
-              ? 'overflow-hidden'
-              : 'overflow-y-auto p-4 md:p-6'
+            location.pathname.startsWith('/problems') ||
+            location.pathname.startsWith('/battles/') ||
+            location.pathname.startsWith('/chat')
+              ? 'overflow-hidden pb-16 lg:pb-0'
+              : 'overflow-y-auto px-4 pt-4 pb-20 md:px-6 md:pt-6 lg:pb-6'
           }`}
         >
           <AnimatePresence mode="wait">
@@ -57,7 +59,9 @@ export default function AppLayout() {
               exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.18, ease: 'easeOut' }}
               className={
-                location.pathname.startsWith('/problems') || location.pathname.startsWith('/battles/')
+                location.pathname.startsWith('/problems') ||
+                location.pathname.startsWith('/battles/') ||
+                location.pathname.startsWith('/chat')
                   ? 'h-full'
                   : undefined
               }

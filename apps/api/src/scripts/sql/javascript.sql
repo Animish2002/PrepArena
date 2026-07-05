@@ -1,6 +1,6 @@
 -- PrepArena seed: JavaScript Theory + MCQ
 -- Problems: 30
--- Generated: 2026-06-30T16:42:46.266Z
+-- Generated: 2026-07-05T17:05:49.114Z
 -- Apply (local):  npx wrangler d1 execute preParena-db --local  --file=src/scripts/sql/javascript.sql
 -- Apply (remote): npx wrangler d1 execute preParena-db --remote --file=src/scripts/sql/javascript.sql
 INSERT OR IGNORE INTO problems (id, title, topic, subtopic, difficulty, platform, platform_link, estimated_minutes, sheet, problem_number, tags, question_type, subject, content, content_source) VALUES ('js-theory-001', 'var vs let vs const — Hoisting & TDZ', 'Variables & Scope', 'Hoisting', 'easy', NULL, NULL, 10, 'Variables & Scope', NULL, '["Variables & Scope","javascript"]', 'theory', 'javascript', '

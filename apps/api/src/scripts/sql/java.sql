@@ -1,6 +1,6 @@
 -- PrepArena seed: Java Theory + MCQ
 -- Problems: 109
--- Generated: 2026-06-30T16:42:46.260Z
+-- Generated: 2026-07-05T17:05:49.109Z
 -- Apply (local):  npx wrangler d1 execute preParena-db --local  --file=src/scripts/sql/java.sql
 -- Apply (remote): npx wrangler d1 execute preParena-db --remote --file=src/scripts/sql/java.sql
 INSERT OR IGNORE INTO problems (id, title, topic, subtopic, difficulty, platform, platform_link, estimated_minutes, sheet, problem_number, tags, question_type, subject, content, content_source) VALUES ('java-theory-001', 'What are the primitive data types in Java?', 'Core Java Basics', 'Data Types', 'easy', NULL, NULL, 5, 'java-interview', 1, '["primitives","data-types"]', 'theory', 'java', '## Primitive Data Types in Java

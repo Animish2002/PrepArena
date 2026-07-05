@@ -1,6 +1,6 @@
 -- PrepArena seed: React Theory + MCQ
 -- Problems: 22
--- Generated: 2026-06-30T16:42:46.266Z
+-- Generated: 2026-07-05T17:05:49.114Z
 -- Apply (local):  npx wrangler d1 execute preParena-db --local  --file=src/scripts/sql/react.sql
 -- Apply (remote): npx wrangler d1 execute preParena-db --remote --file=src/scripts/sql/react.sql
 INSERT OR IGNORE INTO problems (id, title, topic, subtopic, difficulty, platform, platform_link, estimated_minutes, sheet, problem_number, tags, question_type, subject, content, content_source) VALUES ('react-theory-001', 'React Fundamentals — JSX, Components & Props', 'React Basics', NULL, 'easy', NULL, NULL, 10, 'React Basics', NULL, '["React Basics","react"]', 'theory', 'react', '

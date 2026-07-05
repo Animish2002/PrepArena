@@ -1,6 +1,6 @@
 -- PrepArena seed: SQL Coding (LeetCode SQL 50 + HackerRank SQL)
 -- Problems: 104
--- Generated: 2026-06-30T16:42:46.265Z
+-- Generated: 2026-07-05T17:05:49.113Z
 -- Apply (local):  npx wrangler d1 execute preParena-db --local  --file=src/scripts/sql/sql-coding.sql
 -- Apply (remote): npx wrangler d1 execute preParena-db --remote --file=src/scripts/sql/sql-coding.sql
 INSERT OR IGNORE INTO problems (id, title, topic, subtopic, difficulty, platform, platform_link, estimated_minutes, sheet, problem_number, tags, question_type, subject, content, content_source) VALUES ('sql-lc-001', 'Recyclable and Low Fat Products', 'Select', NULL, 'easy', 'leetcode', 'https://leetcode.com/problems/recyclable-and-low-fat-products/', 10, 'leetcode-sql-50', 1, '["select","where"]', 'sql', 'sql', NULL, NULL);

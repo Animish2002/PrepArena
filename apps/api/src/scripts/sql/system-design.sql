@@ -1,6 +1,6 @@
 -- PrepArena seed: System Design Theory + MCQ
 -- Problems: 18
--- Generated: 2026-06-30T16:42:46.268Z
+-- Generated: 2026-07-05T17:05:49.116Z
 -- Apply (local):  npx wrangler d1 execute preParena-db --local  --file=src/scripts/sql/system-design.sql
 -- Apply (remote): npx wrangler d1 execute preParena-db --remote --file=src/scripts/sql/system-design.sql
 INSERT OR IGNORE INTO problems (id, title, topic, subtopic, difficulty, platform, platform_link, estimated_minutes, sheet, problem_number, tags, question_type, subject, content, content_source) VALUES ('sd-theory-001', 'SOLID Principles — With Real Examples', 'SOLID Principles', NULL, 'medium', NULL, NULL, 20, 'SOLID Principles', NULL, '["SOLID Principles","system-design"]', 'theory', 'system-design', '

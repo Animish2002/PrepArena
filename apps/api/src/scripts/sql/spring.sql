@@ -1,6 +1,6 @@
 -- PrepArena seed: Spring Boot Theory
 -- Problems: 54
--- Generated: 2026-06-30T16:42:46.264Z
+-- Generated: 2026-07-05T17:05:49.112Z
 -- Apply (local):  npx wrangler d1 execute preParena-db --local  --file=src/scripts/sql/spring.sql
 -- Apply (remote): npx wrangler d1 execute preParena-db --remote --file=src/scripts/sql/spring.sql
 INSERT OR IGNORE INTO problems (id, title, topic, subtopic, difficulty, platform, platform_link, estimated_minutes, sheet, problem_number, tags, question_type, subject, content, content_source) VALUES ('spring-theory-001', 'What is the Spring IoC Container?', 'Spring Core', 'IoC', 'easy', NULL, NULL, 5, 'spring-interview', 1, '["IoC","container","ApplicationContext"]', 'theory', 'spring-boot', '## Spring IoC Container
