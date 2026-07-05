@@ -14,7 +14,11 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401 && window.location.pathname !== '/login') {
+    const publicPaths = ['/', '/login']
+    const isPublic =
+      publicPaths.includes(window.location.pathname) ||
+      window.location.pathname.startsWith('/join/')
+    if (error.response?.status === 401 && !isPublic) {
       localStorage.removeItem('preParena_token')
       window.location.href = '/login'
     }
