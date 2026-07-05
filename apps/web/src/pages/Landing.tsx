@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 
 const ANIM = `
@@ -87,8 +87,6 @@ const ANIM = `
   .lp-u,.lp-i,.lp-bar,.lp-c1,.lp-c2,.lp-c3 { animation: none !important; opacity:1 !important; }
 }
 `
-
-const API = import.meta.env.VITE_API_URL as string
 
 const SUBJECTS = [
   { label: 'DSA',           color: '#22c55e' },
@@ -305,17 +303,9 @@ function FriendsViz() {
   )
 }
 
-export default function LandingPage() {
-  const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
+const AVATAR = 'https://lh3.googleusercontent.com/a/ACg8ocInQALPthlnKGJjPKKxY5ljlFrPPwFFbNZ4CbcCj9GTQf0FPB7Z=s96-c'
 
-  useEffect(() => {
-    fetch(`${API}/profile/public/animish-chopade`)
-      .then(r => r.ok ? r.json() : null)
-      .then((data: { avatarUrl?: string | null } | null) => {
-        if (data?.avatarUrl) setAvatarUrl(data.avatarUrl)
-      })
-      .catch(() => {})
-  }, [])
+export default function LandingPage() {
 
   return (
     <div style={{
@@ -517,11 +507,7 @@ export default function LandingPage() {
 
           {/* identity row */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.25rem', flexWrap: 'wrap' }}>
-            {avatarUrl ? (
-              <img src={avatarUrl} alt="Animish Chopade" style={{ width: 52, height: 52, borderRadius: '50%', border: '2px solid var(--color-border)', objectFit: 'cover', flexShrink: 0 }}/>
-            ) : (
-              <div style={{ width: 52, height: 52, borderRadius: '50%', border: '2px solid var(--color-border)', background: 'color-mix(in oklch, var(--color-accent) 10%, var(--color-bg))', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, fontWeight: 700, color: 'var(--color-accent)', flexShrink: 0 }}>AC</div>
-            )}
+            <img src={AVATAR} alt="Animish Chopade" style={{ width: 52, height: 52, borderRadius: '50%', border: '2px solid var(--color-border)', objectFit: 'cover', flexShrink: 0 }}/>
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 3 }}>
                 <span style={{ fontSize: 15, fontWeight: 700, letterSpacing: '-.02em' }}>Animish Chopade</span>
