@@ -151,7 +151,7 @@ function WeeklyViz() {
   const days = ['S','M','T','W','T','F','S']
   return (
     <div style={{ marginTop: 'auto', paddingTop: '1.25rem' }}>
-      <div style={{ display: 'flex', gap: 5, marginBottom: 10 }}>
+      <div className="lp-days" style={{ marginBottom: 10 }}>
         {days.map((d, i) => (
           <div key={i} style={{
             width: 28, height: 28, borderRadius: 7, fontSize: 10, fontWeight: 600,
@@ -186,13 +186,11 @@ function BattleViz() {
     <div style={{ marginTop: 'auto', paddingTop: '1rem' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
         <div style={{ textAlign: 'center' }}>
-          <div style={{
-            width: 36, height: 36, borderRadius: '50%', margin: '0 auto 4px',
-            background: 'color-mix(in oklch, var(--color-accent) 14%, var(--color-bg))',
-            border: '2px solid var(--color-accent)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 12, fontWeight: 700, color: 'var(--color-accent)',
-          }}>You</div>
+          <img
+            src="https://lh3.googleusercontent.com/a/ACg8ocInQALPthlnKGJjPKKxY5ljlFrPPwFFbNZ4CbcCj9GTQf0FPB7Z=s96-c"
+            alt="You"
+            style={{ width: 36, height: 36, borderRadius: '50%', margin: '0 auto 4px', display: 'block', border: '2px solid var(--color-accent)', objectFit: 'cover' }}
+          />
           <div style={{
             height: 4, width: 60, borderRadius: 99, overflow: 'hidden',
             background: 'var(--color-border)',
@@ -339,7 +337,7 @@ export default function LandingPage() {
       }}>
         <div style={{ maxWidth: 1100, margin: '0 auto', padding: '0 1.5rem', height: 52, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
-            <img src="/favicon.svg" alt="" style={{ width: 24, height: 24 }} />
+            <img src="https://prep-arena.animishchopade.in/assets/PrepArena_favicon.png" alt="" style={{ width: 24, height: 24, borderRadius: 5 }} />
             <span style={{ fontSize: 14, fontWeight: 600, letterSpacing: '-.02em' }}>PrepArena</span>
           </div>
           <Link
