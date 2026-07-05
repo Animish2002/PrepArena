@@ -105,7 +105,7 @@ const SUBJECTS = [
 function Tag({ children }: { children: React.ReactNode }) {
   return (
     <span style={{
-      display: 'inline-block', fontSize: 10, fontWeight: 600,
+      display: 'inline-block', alignSelf: 'flex-start', fontSize: 10, fontWeight: 600,
       textTransform: 'uppercase', letterSpacing: '.07em',
       padding: '2px 7px', borderRadius: 5,
       background: 'color-mix(in oklch, var(--color-accent) 10%, var(--color-bg))',
