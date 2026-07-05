@@ -7,6 +7,21 @@ import type { AppEnv } from '../types/env'
 
 const router = new Hono<AppEnv>()
 
+// ─── GET /profile/public/:username ────────────────────────────────────────────
+// Public — no auth required. Used by the landing page to show the creator card.
+
+router.get('/public/:username', async (c) => {
+  const username = c.req.param('username')
+  const db = getDb(c.env)
+  const [user] = await db
+    .select({ name: users.name, username: users.username, avatarUrl: users.avatarUrl })
+    .from(users)
+    .where(eq(users.username, username))
+    .limit(1)
+  if (!user) return c.json({ error: 'Not found' }, 404)
+  return c.json(user)
+})
+
 // ─── POST /profile/avatar ─────────────────────────────────────────────────────
 
 router.post('/avatar', authMiddleware, async (c) => {
