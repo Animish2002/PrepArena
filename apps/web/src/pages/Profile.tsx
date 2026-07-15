@@ -9,6 +9,11 @@ import {
   IconFlame,
   IconSwords,
   IconTrophy,
+  IconRefresh,
+  IconLink,
+  IconKey,
+  IconTrash,
+  IconCopy,
 } from '@tabler/icons-react'
 import {
   RadarChart,
@@ -20,8 +25,16 @@ import {
 } from 'recharts'
 import { useAuthStore } from '../store/authStore'
 import { useProgressStore } from '../store/progressStore'
+import { useFeedStore } from '../store/feedStore'
 import ProgressRing from '../components/ui/ProgressRing'
 import api from '../lib/api'
+
+interface ApiToken {
+  id: string
+  label: string
+  createdAt: number | null
+  lastUsedAt: number | null
+}
 
 interface ProfileStats {
   totalTimeSeconds: number
@@ -148,6 +161,21 @@ export default function ProfilePage() {
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState('')
 
+  // ── LeetCode sync state ──────────────────────────────────────────────────────
+  const [lcLinked, setLcLinked] = useState<string | null>(null)
+  const [lcLinkInput, setLcLinkInput] = useState('')
+  const [lcLastSynced, setLcLastSynced] = useState<number | null>(null)
+  const [lcLinking, setLcLinking] = useState(false)
+  const [lcSyncing, setLcSyncing] = useState(false)
+
+  // ── API tokens state ─────────────────────────────────────────────────────────
+  const [apiTokensList, setApiTokensList] = useState<ApiToken[]>([])
+  const [generatingToken, setGeneratingToken] = useState(false)
+  const [newTokenPlaintext, setNewTokenPlaintext] = useState<string | null>(null)
+  const [tokenLabel, setTokenLabel] = useState('Browser Extension')
+  const [revokingId, setRevokingId] = useState<string | null>(null)
+  const [copied, setCopied] = useState(false)
+
   useEffect(() => {
     fetchStats()
     Promise.all([
@@ -160,6 +188,20 @@ export default function ProfilePage() {
       })
       .catch(() => {})
       .finally(() => setLoadingStats(false))
+
+    api
+      .get<{ leetcodeUsername: string | null; leetcodeLastSyncedAt: number | null }>('/api/leetcode/status')
+      .then(({ data }) => {
+        setLcLinked(data.leetcodeUsername)
+        setLcLinkInput(data.leetcodeUsername ?? '')
+        setLcLastSynced(data.leetcodeLastSyncedAt)
+      })
+      .catch(() => {})
+
+    api
+      .get<{ tokens: ApiToken[] }>('/api/tokens')
+      .then(({ data }) => setApiTokensList(data.tokens))
+      .catch(() => {})
   }, [fetchStats])
 
   function startEdit() {
@@ -187,6 +229,76 @@ export default function ProfilePage() {
     } finally {
       setSaving(false)
     }
+  }
+
+  async function linkLeetCode() {
+    if (!lcLinkInput.trim()) return
+    setLcLinking(true)
+    try {
+      const { data } = await api.post<{ leetcodeUsername: string }>('/api/leetcode/link', {
+        username: lcLinkInput.trim(),
+      })
+      setLcLinked(data.leetcodeUsername)
+      useFeedStore.getState().addToast(`LeetCode @${data.leetcodeUsername} linked`, 'success')
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error ?? 'Failed to link'
+      useFeedStore.getState().addToast(msg, 'info')
+    } finally {
+      setLcLinking(false)
+    }
+  }
+
+  async function syncLeetCode() {
+    setLcSyncing(true)
+    try {
+      const { data } = await api.post<{ matched: number; newlyCompleted: number }>('/api/leetcode/sync')
+      setLcLastSynced(Date.now())
+      useFeedStore.getState().addToast(
+        `Synced — ${data.matched} matched, ${data.newlyCompleted} newly completed`,
+        'success',
+      )
+      useProgressStore.getState().fetchAllProblems()
+      fetchStats()
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error ?? 'Sync failed'
+      useFeedStore.getState().addToast(msg, 'info')
+    } finally {
+      setLcSyncing(false)
+    }
+  }
+
+  async function generateToken() {
+    setGeneratingToken(true)
+    try {
+      const { data } = await api.post<{ token: string; label: string; id: string }>('/api/tokens', {
+        label: tokenLabel,
+      })
+      setNewTokenPlaintext(data.token)
+      const { data: listData } = await api.get<{ tokens: ApiToken[] }>('/api/tokens')
+      setApiTokensList(listData.tokens)
+    } catch {
+      useFeedStore.getState().addToast('Failed to generate token', 'info')
+    } finally {
+      setGeneratingToken(false)
+    }
+  }
+
+  async function revokeToken(id: string) {
+    setRevokingId(id)
+    try {
+      await api.delete(`/api/tokens/${id}`)
+      setApiTokensList((prev) => prev.filter((t) => t.id !== id))
+    } catch {
+      useFeedStore.getState().addToast('Failed to revoke token', 'info')
+    } finally {
+      setRevokingId(null)
+    }
+  }
+
+  async function copyToken(text: string) {
+    await navigator.clipboard.writeText(text)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
   }
 
   async function handleAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -444,6 +556,155 @@ export default function ProfilePage() {
             </ResponsiveContainer>
           )}
         </div>
+      </div>
+
+      {/* ── LeetCode Sync ───────────────────────────────────────────────────────── */}
+      <div className="bg-(--color-surface) border border-(--color-border) rounded-2xl p-6 space-y-4">
+        <div className="flex items-center gap-2">
+          <IconLink size={16} className="text-(--color-accent)" />
+          <h2 className="text-sm font-semibold text-(--color-text-primary)">LeetCode Sync</h2>
+        </div>
+        <p className="text-xs text-(--color-text-secondary) leading-relaxed">
+          Link your public LeetCode profile to import recently accepted submissions as solved problems.{' '}
+          <span className="text-(--color-text-primary)">Note:</span> LeetCode limits unauthenticated history — only
+          your most recent ~50 submissions are imported. Use the browser extension below for real-time, full-history
+          coverage.
+        </p>
+
+        <div className="flex gap-2">
+          <input
+            value={lcLinkInput}
+            onChange={(e) => setLcLinkInput(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && linkLeetCode()}
+            placeholder="your-leetcode-username"
+            className="flex-1 text-sm rounded-lg border border-(--color-border) bg-(--color-bg) px-3 py-2 text-(--color-text-primary) placeholder:text-(--color-text-secondary) focus:outline-none focus:ring-2 focus:ring-(--color-accent)/40"
+          />
+          <button
+            onClick={linkLeetCode}
+            disabled={lcLinking || !lcLinkInput.trim()}
+            className="shrink-0 flex items-center gap-1.5 text-xs font-semibold px-4 py-2 rounded-lg bg-(--color-accent) text-white hover:opacity-90 disabled:opacity-50 transition-opacity"
+          >
+            {lcLinking ? (
+              <span className="w-3 h-3 border border-white border-t-transparent rounded-full animate-spin" />
+            ) : (
+              <IconLink size={13} />
+            )}
+            {lcLinked ? 'Update' : 'Link'}
+          </button>
+        </div>
+
+        {lcLinked && (
+          <div className="flex items-center justify-between gap-3 pt-1">
+            <div>
+              <p className="text-xs text-(--color-text-secondary)">
+                Linked as{' '}
+                <span className="font-semibold text-(--color-text-primary)">@{lcLinked}</span>
+              </p>
+              {lcLastSynced && (
+                <p className="text-xs text-(--color-text-secondary) mt-0.5">
+                  Last synced {timeAgo(lcLastSynced)}
+                </p>
+              )}
+            </div>
+            <button
+              onClick={syncLeetCode}
+              disabled={lcSyncing}
+              className="shrink-0 flex items-center gap-1.5 text-xs font-semibold px-4 py-2 rounded-lg border border-(--color-border) text-(--color-text-primary) hover:border-(--color-accent) disabled:opacity-50 transition-colors"
+            >
+              {lcSyncing ? (
+                <span className="w-3 h-3 border border-current border-t-transparent rounded-full animate-spin" />
+              ) : (
+                <IconRefresh size={13} />
+              )}
+              {lcSyncing ? 'Syncing…' : 'Sync now'}
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* ── Browser Extension ───────────────────────────────────────────────────── */}
+      <div className="bg-(--color-surface) border border-(--color-border) rounded-2xl p-6 space-y-4">
+        <div className="flex items-center gap-2">
+          <IconKey size={16} className="text-(--color-accent)" />
+          <h2 className="text-sm font-semibold text-(--color-text-primary)">Browser Extension</h2>
+        </div>
+        <p className="text-xs text-(--color-text-secondary) leading-relaxed">
+          Generate a personal access token for the PrepArena browser extension. The extension uses it to mark
+          problems solved in real time as you submit on LeetCode — no sync needed, full history.
+        </p>
+
+        <div className="flex gap-2">
+          <input
+            value={tokenLabel}
+            onChange={(e) => setTokenLabel(e.target.value)}
+            placeholder="Token label"
+            className="flex-1 text-sm rounded-lg border border-(--color-border) bg-(--color-bg) px-3 py-2 text-(--color-text-primary) placeholder:text-(--color-text-secondary) focus:outline-none focus:ring-2 focus:ring-(--color-accent)/40"
+          />
+          <button
+            onClick={generateToken}
+            disabled={generatingToken}
+            className="shrink-0 flex items-center gap-1.5 text-xs font-semibold px-4 py-2 rounded-lg bg-(--color-accent) text-white hover:opacity-90 disabled:opacity-50 transition-opacity"
+          >
+            {generatingToken ? (
+              <span className="w-3 h-3 border border-white border-t-transparent rounded-full animate-spin" />
+            ) : (
+              <IconKey size={13} />
+            )}
+            Generate
+          </button>
+        </div>
+
+        {newTokenPlaintext && (
+          <div className="rounded-xl border border-amber-500/30 bg-amber-500/8 p-4 space-y-2">
+            <p className="text-xs font-semibold text-amber-600 dark:text-amber-400">
+              Copy this token — you won&apos;t see it again
+            </p>
+            <div className="flex items-center gap-2">
+              <code className="flex-1 text-xs font-mono bg-(--color-bg) border border-(--color-border) rounded-lg px-3 py-2 text-(--color-text-primary) break-all select-all">
+                {newTokenPlaintext}
+              </code>
+              <button
+                onClick={() => copyToken(newTokenPlaintext)}
+                className="shrink-0 p-2 rounded-lg border border-(--color-border) hover:border-(--color-accent) text-(--color-text-secondary) hover:text-(--color-accent) transition-colors"
+                title="Copy token"
+              >
+                {copied ? <IconCheck size={14} /> : <IconCopy size={14} />}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {apiTokensList.length > 0 && (
+          <div className="space-y-2 pt-1">
+            <p className="text-xs font-medium text-(--color-text-secondary)">Active tokens</p>
+            {apiTokensList.map((t) => (
+              <div
+                key={t.id}
+                className="flex items-center gap-3 px-3 py-2.5 rounded-xl border border-(--color-border) bg-(--color-bg)"
+              >
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-medium text-(--color-text-primary) truncate">{t.label}</p>
+                  <p className="text-xs text-(--color-text-secondary) mt-0.5">
+                    Created {t.createdAt ? timeAgo(t.createdAt) : '—'}
+                    {t.lastUsedAt ? ` · Last used ${timeAgo(t.lastUsedAt)}` : ' · Never used'}
+                  </p>
+                </div>
+                <button
+                  onClick={() => revokeToken(t.id)}
+                  disabled={revokingId === t.id}
+                  className="shrink-0 p-1.5 rounded-lg text-(--color-text-secondary) hover:text-red-500 hover:bg-red-500/10 disabled:opacity-50 transition-colors"
+                  title="Revoke token"
+                >
+                  {revokingId === t.id ? (
+                    <span className="w-3 h-3 border border-current border-t-transparent rounded-full animate-spin block" />
+                  ) : (
+                    <IconTrash size={13} />
+                  )}
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* ── Recent activity ─────────────────────────────────────────────────────── */}

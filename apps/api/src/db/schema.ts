@@ -9,6 +9,8 @@ export const users = sqliteTable('users', {
   username: text('username').notNull().unique(),
   avatarUrl: text('avatar_url'),
   createdAt: integer('created_at'),
+  leetcodeUsername: text('leetcode_username'),
+  leetcodeLastSyncedAt: integer('leetcode_last_synced_at'),
 })
 
 // ─── Problems ────────────────────────────────────────────────────────────────
@@ -37,6 +39,8 @@ export const problems = sqliteTable('problems', {
   content: text('content'),
   // e.g. 'baeldung' | 'official-docs' | 'custom' | 'leetcode'
   contentSource: text('content_source'),
+  // join key for LeetCode sync — e.g. 'two-sum'
+  leetcodeSlug: text('leetcode_slug'),
 })
 
 // ─── Friendships ─────────────────────────────────────────────────────────────
@@ -263,6 +267,17 @@ export const challengeCompletions = sqliteTable('challenge_completions', {
 }, (table) => [
   uniqueIndex('challenge_completions_challenge_user_idx').on(table.challengeId, table.userId),
 ])
+
+// ─── API Tokens (personal access tokens for browser extension) ───────────────
+
+export const apiTokens = sqliteTable('api_tokens', {
+  id: text('id').primaryKey(),
+  userId: text('user_id').notNull().references(() => users.id),
+  tokenHash: text('token_hash').notNull().unique(),
+  label: text('label').notNull(),
+  createdAt: integer('created_at'),
+  lastUsedAt: integer('last_used_at'),
+})
 
 // ─── MCQ Attempts ─────────────────────────────────────────────────────────────
 

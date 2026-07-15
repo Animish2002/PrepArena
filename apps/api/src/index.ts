@@ -13,6 +13,9 @@ import profileRouter from './routes/profile'
 import groupsRouter from './routes/groups'
 import challengesRouter, { autoCreateWeeklyChallenge } from './routes/challenges'
 import chatRouter, { internalChatRouter } from './routes/chat'
+import leetcodeRouter from './routes/leetcode'
+import tokensRouter from './routes/tokens'
+import extensionRouter from './routes/extension'
 
 // Durable Object classes must be exported from the main entry point
 export { UserFeed } from './durable/UserFeed'
@@ -35,8 +38,13 @@ app.get('/health', (c) =>
 )
 
 app.route('/auth', auth)
+// extensionRouter must come before progressRouter so /api/progress/complete
+// is matched by flexAuthMiddleware (accepts both JWTs and API tokens)
+app.route('/api', extensionRouter)
 app.route('/api/problems', problemsRouter)
 app.route('/api/progress', progressRouter)
+app.route('/api/leetcode', leetcodeRouter)
+app.route('/api/tokens', tokensRouter)
 app.route('/api/friends', friendsRouter)
 app.route('/api/leaderboard', leaderboardRouter)
 app.route('/api/battles', battlesRouter)

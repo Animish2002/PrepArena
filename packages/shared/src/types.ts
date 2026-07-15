@@ -99,3 +99,56 @@ export interface Battle {
   winnerId?: string
   createdAt: string
 }
+
+// ─── LeetCode Sync ────────────────────────────────────────────────────────────
+
+export interface LeetCodeStatusResponse {
+  leetcodeUsername: string | null
+  leetcodeLastSyncedAt: number | null
+}
+
+export interface LeetCodeLinkRequest {
+  username: string
+}
+
+export interface LeetCodeLinkResponse {
+  leetcodeUsername: string
+}
+
+export interface LeetCodeSyncResponse {
+  matched: number
+  newlyCompleted: number
+}
+
+export interface ProgressCompleteRequest {
+  leetcodeSlug: string
+}
+
+export interface ProgressCompleteResponse {
+  success: boolean
+  problemId: string
+  title: string
+}
+
+// ─── Personal Access Tokens ───────────────────────────────────────────────────
+
+export interface ApiToken {
+  id: string
+  label: string
+  createdAt: number | null
+  lastUsedAt: number | null
+}
+
+export interface CreateTokenRequest {
+  label?: string
+}
+
+export interface CreateTokenResponse {
+  token: string
+  label: string
+  id: string
+}
+
+export interface ListTokensResponse {
+  tokens: ApiToken[]
+}
