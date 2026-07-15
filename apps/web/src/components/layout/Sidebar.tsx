@@ -22,8 +22,6 @@ import { useChatStore } from '../../store/chatStore'
 function useChallengeNewDot() {
   const STORAGE_KEY = 'preparena_last_seen_challenge'
   const today = new Date()
-  // Show dot on Mondays (day 1) — new challenge just went live
-  const isMonday = today.getDay() === 1
   const lastSeen = localStorage.getItem(STORAGE_KEY)
   const thisMonday = (() => {
     const d = new Date(today)
@@ -31,7 +29,7 @@ function useChallengeNewDot() {
     d.setDate(d.getDate() - ((d.getDay() + 6) % 7))
     return d.toISOString().slice(0, 10)
   })()
-  return isMonday && lastSeen !== thisMonday
+  return lastSeen !== thisMonday
 }
 
 const NAV_ITEMS = [

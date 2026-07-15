@@ -267,7 +267,7 @@ function TheoryExpansion({
 // ─── Main page ────────────────────────────────────────────────────────────────
 
 export default function ProblemsPage() {
-  const { problems, userProgress, bookmarks, isLoading, fetchProblems, fetchAllProblems, toggleBookmark } =
+  const { problems, userProgress, bookmarks, isLoading, fetchProblems, toggleBookmark } =
     useProgressStore()
 
   const [searchParams, setSearchParams] = useSearchParams()
@@ -292,14 +292,10 @@ export default function ProblemsPage() {
     setSelectedTopic('All')
     setExpandedIds(new Set())
 
-    if (subject === 'dsa' && !questionType && !sheet) {
-      fetchAllProblems()
-    } else {
-      const filters: Record<string, string> = { limit: '500', subject }
-      if (questionType) filters.question_type = questionType
-      if (sheet) filters.sheet = sheet
-      fetchProblems(filters)
-    }
+    const filters: Record<string, string> = { limit: '500', subject }
+    if (questionType) filters.question_type = questionType
+    if (sheet) filters.sheet = sheet
+    fetchProblems(filters)
   }, [subject, questionType, sheet]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Available question types for current subject
@@ -307,12 +303,13 @@ export default function ProblemsPage() {
 
   // Dynamic topics from current problems list
   const topics = useMemo(() => {
-    const t = new Set(problems.map((p) => p.topic))
+    const t = new Set(problems.filter((p) => p.subject === subject).map((p) => p.topic))
     return ['All', ...Array.from(t).sort()]
-  }, [problems])
+  }, [problems, subject])
 
   const filtered = useMemo(() => {
     return problems.filter((p) => {
+      if (p.subject !== subject) return false
       if (selectedTopic !== 'All' && p.topic !== selectedTopic) return false
       if (difficulty !== 'All' && p.difficulty !== difficulty.toLowerCase()) return false
       if (search) {
@@ -321,9 +318,9 @@ export default function ProblemsPage() {
       }
       return true
     })
-  }, [problems, selectedTopic, difficulty, search])
+  }, [problems, subject, selectedTopic, difficulty, search])
 
-  const solvedCount = problems.filter((p) => userProgress[p.id]?.status === 'solved').length
+  const solvedCount = problems.filter((p) => p.subject === subject && userProgress[p.id]?.status === 'solved').length
 
   function setSubject(s: string) {
     setSearchParams((prev) => {
