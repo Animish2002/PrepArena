@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PrepArena Sync</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --accent: #6366f1;
+      --bg:     #09090b;
+      --surf:   #18181b;
+      --bord:   #27272a;
+      --text:   #fafafa;
+      --muted:  #a1a1aa;
+      --green:  #22c55e;
+      --red:    #ef4444;
+    }
+
+    body {
+      width: 320px;
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 13px;
+      line-height: 1.5;
+      padding: 16px;
+    }
+
+    /* ── Header ── */
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      padding-bottom: 13px;
+      margin-bottom: 14px;
+      border-bottom: 1px solid var(--bord);
+    }
+    .header img { border-radius: 5px; }
+    .header .title { font-size: 14px; font-weight: 600; letter-spacing: -.02em; }
+
+    /* ── Fields ── */
+    .field { margin-bottom: 11px; }
+    .field label {
+      display: block;
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .07em;
+      color: var(--muted);
+      margin-bottom: 5px;
+    }
+    .field input {
+      width: 100%;
+      padding: 7px 10px;
+      border-radius: 8px;
+      border: 1px solid var(--bord);
+      background: var(--surf);
+      color: var(--text);
+      font-size: 12px;
+      outline: none;
+      transition: border-color .15s;
+    }
+    .field input:focus { border-color: var(--accent); }
+    .field input::placeholder { color: var(--muted); }
+
+    /* ── Toggle row ── */
+    .toggle-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 0;
+      margin: 4px 0 12px;
+      border-top: 1px solid var(--bord);
+      border-bottom: 1px solid var(--bord);
+    }
+    .toggle-label { font-size: 12px; font-weight: 500; }
+
+    .switch { position: relative; display: inline-block; width: 36px; height: 20px; }
+    .switch input { opacity: 0; width: 0; height: 0; }
+    .knob {
+      position: absolute; inset: 0;
+      background: var(--bord);
+      border-radius: 20px;
+      cursor: pointer;
+      transition: background .2s;
+    }
+    .knob::before {
+      content: '';
+      position: absolute;
+      width: 14px; height: 14px;
+      left: 3px; top: 3px;
+      background: #fff;
+      border-radius: 50%;
+      transition: transform .2s;
+    }
+    .switch input:checked + .knob { background: var(--accent); }
+    .switch input:checked + .knob::before { transform: translateX(16px); }
+
+    /* ── Buttons ── */
+    .btn-row { display: flex; gap: 8px; }
+    .btn {
+      flex: 1;
+      padding: 8px 12px;
+      border-radius: 8px;
+      border: none;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity .15s;
+    }
+    .btn:hover:not(:disabled) { opacity: .85; }
+    .btn:disabled { opacity: .5; cursor: not-allowed; }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-ghost { background: var(--surf); color: var(--muted); border: 1px solid var(--bord); }
+
+    /* ── Status ── */
+    #status {
+      min-height: 18px;
+      margin-top: 10px;
+      font-size: 11px;
+      text-align: center;
+      color: var(--muted);
+    }
+    #status.ok    { color: var(--green); }
+    #status.error { color: var(--red);   }
+
+    /* ── Help footer ── */
+    .help {
+      margin-top: 14px;
+      padding-top: 12px;
+      border-top: 1px solid var(--bord);
+      font-size: 11px;
+      color: var(--muted);
+      line-height: 1.65;
+    }
+    .help a { color: var(--accent); text-decoration: none; }
+    .help a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <img src="../icons/icon48.png" alt="" width="22" height="22">
+    <span class="title">PrepArena Sync</span>
+  </div>
+
+  <div class="field">
+    <label for="apiBase">API Base URL</label>
+    <input type="url" id="apiBase" placeholder="https://prep-arena.animishchopade.in" autocomplete="off" spellcheck="false">
+  </div>
+
+  <div class="field">
+    <label for="token">Personal Access Token</label>
+    <input type="password" id="token" placeholder="pa_… (generate in PrepArena → Profile)" autocomplete="off" spellcheck="false">
+  </div>
+
+  <div class="toggle-row">
+    <span class="toggle-label">Extension enabled</span>
+    <label class="switch" title="Toggle extension on/off">
+      <input type="checkbox" id="enabled" checked>
+      <span class="knob"></span>
+    </label>
+  </div>
+
+  <div class="btn-row">
+    <button class="btn btn-primary" id="save">Save</button>
+    <button class="btn btn-ghost" id="test">Test connection</button>
+  </div>
+
+  <div id="status"></div>
+
+  <div class="help">
+    Generate a token: <a href="https://prep-arena.animishchopade.in/profile" target="_blank">PrepArena → Profile → Browser Extension</a>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

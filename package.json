@@ -12,6 +12,8 @@
     "build:web": "npm run build --workspace=apps/web",
     "build:shared": "npm run build --workspace=packages/shared",
     "deploy:api": "npm run deploy --workspace=apps/api",
-    "deploy:web": "npm run build --workspace=apps/web && wrangler pages deploy apps/web/dist --project-name preparena-web --commit-dirty=true"
+    "deploy:web": "npm run build --workspace=apps/web && wrangler pages deploy apps/web/dist --project-name preparena-web --commit-dirty=true",
+    "build:extension": "npm run build --prefix extension",
+    "dev:extension": "npm run dev --prefix extension"
   }
 }
